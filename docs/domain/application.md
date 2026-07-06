@@ -17,11 +17,17 @@ Eine Application kann zusätzlich **[Volumes](volume.md)** deklarieren, in denen
 Daten ablegt, sowie **optional** eine **[Backup](backup.md)-Policy**, die diese Daten durable und
 über einen frischen Server wiederherstellbar macht. Ohne Backup-Policy ist die App ephemer.
 
+Für die Erreichbarkeit besitzt jede App einen stabilen internen Namen
+([Service-Discovery](service-discovery.md)) und kann **optional** eine oder mehrere
+**[Routes](route.md)** (Hostname → App) für externen Zugriff deklarieren.
+
 ## Beziehungen
 
 - Referenziert genau ein [Container-Image](container-image.md).
 - Wird auf einem oder mehreren [Servern](server.md) ausgeführt.
 - Kann [Volumes](volume.md) und optional eine [Backup](backup.md)-Policy deklarieren.
+- Besitzt einen stabilen internen Namen ([Service-Discovery](service-discovery.md)) und kann
+  optional [Routes](route.md) für externen Ingress deklarieren.
 - Ihr Soll ist Teil des [Desired-vs-Actual-State](desired-vs-actual-state.md).
 
 ## Regeln
@@ -35,3 +41,6 @@ Daten ablegt, sowie **optional** eine **[Backup](backup.md)-Policy**, die diese 
 - [Volumes](volume.md) und die optionale [Backup](backup.md)-Policy einer Application werden
   **deklarativ** im Config-Repository beschrieben. Ist keine Backup-Policy gesetzt, gilt die App
   als **ephemer** — der Verlust ihrer Laufzeitdaten ist akzeptiert.
+- [Routes](route.md) einer Application werden **deklarativ** im Config-Repository beschrieben.
+  Interne Adressierung erfolgt über den stabilen Namen der App
+  ([Service-Discovery](service-discovery.md)), nicht über konkrete Server-IPs.

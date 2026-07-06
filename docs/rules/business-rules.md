@@ -52,6 +52,19 @@ der Konfiguration klar erkennbar sein. → [ADR-0009](../decisions/0009-persiste
 Ein [Restore](../domain/backup.md) aus einem Backup erfolgt **ausschließlich** bei leerem/neuem
 Volume und überschreibt **niemals** bestehende Live-Daten.
 
+## BR-9 — Ingress und DNS sind deklarativ
+
+[Routes](../domain/route.md) (Ingress) und die DNS-Verwaltung werden ausschließlich deklarativ
+im [Config-Repository](../domain/config-repository.md) beschrieben; Änderungen erfolgen nur dort.
+→ [ADR-0010](../decisions/0010-dns-ingress-service-discovery.md)
+
+## BR-10 — Keine Abhängigkeit von einer konkreten Server-IP
+
+Öffentliche und interne Erreichbarkeit hängen **nie** an der IP eines konkreten
+[Servers](../domain/server.md). Öffentlicher Zugriff erfolgt über einen stabilen Eintrittspunkt
+**oder** D4Y-managed [DNS](../domain/dns-provider.md); interne Adressierung über stabile Namen
+([Service-Discovery](../domain/service-discovery.md)).
+
 ## BR-11 — Operative Aktionen sind transient und auditiert
 
 [Operative Aktionen](../domain/operational-action.md) über UI/API (Inspizieren/Debuggen,

@@ -40,5 +40,12 @@ Geheimnisse und personenbezogene Daten offenlegen. Solcher Zugriff unterliegt Zu
 und Least Privilege, wird **auditiert** und gibt Zugangsdaten/Secrets niemals in der
 Statusanzeige aus. → [ADR-0012](../decisions/0012-operational-actions-and-reconciliation-hold.md)
 
+## PR-7 — Schutz der DNS-Provider-Zugangsdaten
+
+Im managed-Modus der DNS-Verwaltung sind die Zugangsdaten des
+[DNS-Providers](../domain/dns-provider.md) vertraulich zu behandeln (Least Privilege, keine
+Klartext-Protokollierung, keine Ausgabe in der Statusanzeige) und auf das für die
+Record-Verwaltung notwendige Maß zu beschränken.
+
 > Konkrete Mechanismen zur Ablage und Verteilung von Geheimnissen sind eine
 > **Implementierungsentscheidung** und werden per ADR festgelegt.
