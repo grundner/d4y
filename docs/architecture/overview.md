@@ -66,8 +66,11 @@ reproduzierbar, **Daten** über Backups aus dem Backup-Store.
 
 ## Betriebsmodell
 
-- **Änderungen erfolgen ausschließlich über das Git-Config-Repo.** Das Frontend und die API
-  sind für Infrastrukturänderungen bewusst read-only. → [business-rules](../rules/business-rules.md)
+- **Sollzustand-Änderungen erfolgen ausschließlich über das Git-Config-Repo.** Frontend und API
+  sind **read-only bezüglich des Sollzustands**. Operative Aktionen (Restart, Debugging,
+  temporäre Parameter) sind erlaubt, ändern den Sollzustand aber nicht — sie sind transient,
+  auditiert und ggf. per zeitlich begrenztem Hold abgesichert.
+  → [operational-actions](operational-actions.md), [business-rules](../rules/business-rules.md)
 - **Server sind austauschbar und zustandslos.** Jeglicher Zustand ergibt sich aus Git plus dem
   laufenden Ist-Zustand der Engine. → [server](../domain/server.md)
 - **Auslieferung als Single-Image.** Backend und Frontend liegen in der ersten Ausbaustufe in
@@ -79,3 +82,4 @@ reproduzierbar, **Daten** über Backups aus dem Backup-Store.
 - [reconciliation-loop.md](reconciliation-loop.md)
 - [bootstrap.md](bootstrap.md)
 - [persistence-and-backup.md](persistence-and-backup.md)
+- [operational-actions.md](operational-actions.md)

@@ -18,6 +18,8 @@ weiterer Durchlauf nichts.
 - **In Sync** — Ist entspricht Soll; keine Aktion nötig.
 - **Drift erkannt** — Abweichung zwischen Soll und Ist festgestellt.
 - **Reconciling** — Angleichung an den Soll-Zustand läuft.
+- **Gehalten (Hold)** — für dieses Ziel ist ein [Reconciliation-Hold](reconciliation-hold.md)
+  aktiv; die Angleichung ist zeitlich begrenzt ausgesetzt.
 - **Fehler** — Angleichung war (temporär) nicht möglich; wird erneut versucht.
 
 ## Beziehungen
@@ -34,3 +36,5 @@ weiterer Durchlauf nichts.
 - Reconciliation ist **idempotent**: bei Übereinstimmung von Soll und Ist erfolgt keine Änderung.
 - Ein temporär fehlgeschlagener Angleich führt zu einem erneuten Versuch, nicht zu einem
   dauerhaften Fehlerzustand.
+- Für ein Ziel mit aktivem [Reconciliation-Hold](reconciliation-hold.md) wird die Angleichung
+  **übersprungen**, bis der Hold abläuft; andere Ziele bleiben davon unberührt.

@@ -3,9 +3,11 @@
 Status: Draft
 Bezug: [ADR-0004](../decisions/0004-nextjs-react-readonly-frontend.md)
 
-Die Status-View ist die erste und in der ersten Ausbaustufe **einzige** Funktion des Frontends:
-Statuskontrolle und Visualisierung des aktuellen Plattformzustands. Sie ist **read-only** und
-kann keine Infrastrukturänderungen auslösen.
+Die Status-View ist die zentrale Funktion des Frontends: Statuskontrolle und Visualisierung des
+aktuellen Plattformzustands. Sie ist **read-only bezüglich des Sollzustands** — sie kann den
+deklarativen Sollzustand nicht ändern (das bleibt Git). Ergänzend bietet das Frontend
+[operative Aktionen](../domain/operational-action.md) (siehe unten), die den Sollzustand nicht
+verändern.
 
 ## Zweck
 
@@ -19,16 +21,33 @@ kann keine Infrastrukturänderungen auslösen.
 
 | Bereich | Inhalt |
 | --- | --- |
-| Plattformstatus | In Sync / Drift erkannt / Reconciling / Fehler |
+| Plattformstatus | In Sync / Drift erkannt / Reconciling / Gehalten (Hold) / Fehler |
 | Anwendungen | laufende Applications, referenziertes Image, Ist-Zustand |
 | Soll vs. Ist | Abweichungen (Drift) sichtbar gemacht |
+| Operative Aktionen / Holds | aktive Holds, temporäre Overrides, verbleibende Dauer |
 | Config-Bezug | zugrunde liegende Version des Config-Repositories |
 | Letzte Reconciliation | Zeitpunkt/Ergebnis des letzten Durchlaufs |
 
+## Operative Aktionen
+
+Das Frontend darf [operative Aktionen](../domain/operational-action.md) auslösen, die den
+**Sollzustand nicht verändern** und als **temporäre, sanktionierte Drift** dargestellt werden:
+
+- **Inspizieren/Debuggen** — Logs, exec/Shell, Container-Details.
+- **Lifecycle-Nudges** — manueller Restart/Stop einzelner Apps.
+- **Temporäre Parameter** — vergänglicher Override, abgesichert durch einen zeitlich begrenzten
+  [Reconciliation-Hold](../domain/reconciliation-hold.md).
+
+Aktive Holds und laufende Overrides werden sichtbar gemacht — inklusive verbleibender Dauer, nach
+der die Plattform automatisch zum Sollzustand zurückkehrt.
+→ [ADR-0012](../decisions/0012-operational-actions-and-reconciliation-hold.md)
+
 ## Prinzipien
 
-- **Read-only:** keine Buttons/Aktionen, die Infrastruktur verändern.
-- **Keine Geheimnisse:** niemals Zugangsdaten/Secrets anzeigen.
+- **Read-only bzgl. Sollzustand:** keine UI-Aktion ändert den deklarativen Sollzustand (nur Git).
+- **Operative Aktionen sichtbar:** jede Abweichung durch operative Aktionen ist als temporäre
+  Drift erkennbar und wird auditiert.
+- **Keine Geheimnisse:** niemals Zugangsdaten/Secrets anzeigen (auch nicht in Logs/exec-Ausgaben).
   → [privacy-rules](../rules/privacy-rules.md)
 - **Ehrliche Darstellung:** Fehlerzustände werden sichtbar gemacht, nicht verschleiert.
 

@@ -17,6 +17,11 @@ Drift zu erkennen und aufzulösen — das leistet die [Reconciliation](reconcili
 eines [Volumes](volume.md) (dass und wo es existiert), **nicht** dessen **Inhalt**. Datendurability
 wird nicht über Git, sondern über [Backups](backup.md) hergestellt.
 
+Nicht jede Drift ist ungewollt: Eine [operative Aktion](operational-action.md) (z. B. temporäre
+Parameter) erzeugt **sanktionierte, temporäre Drift**. Solange ein
+[Reconciliation-Hold](reconciliation-hold.md) aktiv ist, wird sie bewusst nicht korrigiert; nach
+dessen Ablauf gleicht die Reconciliation wieder an den Soll-Zustand an.
+
 ## Beziehungen
 
 - Der Soll-Zustand stammt aus dem [Config-Repository](config-repository.md).

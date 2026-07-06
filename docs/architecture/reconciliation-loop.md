@@ -45,6 +45,9 @@ der Maschine kontinuierlich dem **Soll-Zustand** aus dem Git-Config-Repo entspri
   [Volumes](../domain/volume.md) existieren und — bei **leerem/neuem** Volume und konfiguriertem
   [Backup](../domain/backup.md) — vor dem Start ein Restore erfolgt. Bestehende Live-Daten werden
   nie überschrieben. → [persistence-and-backup](persistence-and-backup.md)
+- **Hold-bewusst** — Ziele mit aktivem [Reconciliation-Hold](../domain/reconciliation-hold.md)
+  werden übersprungen (nicht global pausiert) und nach Ablauf des Holds wieder normal abgeglichen.
+  → [operational-actions](operational-actions.md)
 
 ## Fehlerbehandlung (Prinzipien)
 

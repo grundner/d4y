@@ -4,11 +4,14 @@ Dieses Dokument enthält **ausschließlich übergreifende** Geschäftsregeln, di
 einzelnen Domänenobjekt gehören. Objektspezifische Regeln stehen in der `## Regeln`-Sektion
 des jeweiligen Dokuments in [`../domain/`](../domain/).
 
-## BR-1 — Änderungen nur über das Config-Repository
+## BR-1 — Sollzustand-Änderungen nur über das Config-Repository
 
-Jede Änderung an der Infrastruktur erfolgt ausschließlich über das
-[Config-Repository](../domain/config-repository.md). API und UI dürfen keine
-Infrastrukturänderungen auslösen. → [ADR-0001](../decisions/0001-git-as-single-source-of-truth.md)
+Jede Änderung am **deklarativen Sollzustand** (welche Apps, Images, Routes, Volumes) erfolgt
+ausschließlich über das [Config-Repository](../domain/config-repository.md). API und UI dürfen
+den Sollzustand **niemals** ändern. → [ADR-0001](../decisions/0001-git-as-single-source-of-truth.md)
+
+Davon unberührt sind [operative Aktionen](../domain/operational-action.md) (Restart, Debugging,
+temporäre Parameter), die den Sollzustand nicht verändern — siehe BR-11/BR-12.
 
 ## BR-2 — Kein Build auf dem Zielsystem
 
@@ -48,3 +51,16 @@ der Konfiguration klar erkennbar sein. → [ADR-0009](../decisions/0009-persiste
 
 Ein [Restore](../domain/backup.md) aus einem Backup erfolgt **ausschließlich** bei leerem/neuem
 Volume und überschreibt **niemals** bestehende Live-Daten.
+
+## BR-11 — Operative Aktionen sind transient und auditiert
+
+[Operative Aktionen](../domain/operational-action.md) über UI/API (Inspizieren/Debuggen,
+Lifecycle-Nudges, temporäre Parameter) ändern **nie** den Sollzustand. Sie sind **transient**,
+werden **auditiert** und als sanktionierte, temporäre Drift **sichtbar** gemacht.
+→ [ADR-0012](../decisions/0012-operational-actions-and-reconciliation-hold.md)
+
+## BR-12 — Reconciliation-Hold ist immer zeitlich begrenzt
+
+Ein [Reconciliation-Hold](../domain/reconciliation-hold.md) pausiert die Reconciliation für ein
+Ziel nur **zeitlich begrenzt** und läuft **automatisch** ab. Ein unbefristeter Hold ist
+unzulässig; nach Ablauf kehrt das Ziel zu reinem GitOps/Self-Healing zurück.
