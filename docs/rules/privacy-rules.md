@@ -33,5 +33,12 @@ vertraulich zu behandeln (Least Privilege, keine Klartext-Protokollierung, keine
 Statusanzeige). Der Zugriff auf Backups ist auf das für Backup und Restore notwendige Maß zu
 beschränken.
 
+## PR-6 — Schutz der DNS-Provider-Zugangsdaten
+
+Im managed-Modus der DNS-Verwaltung sind die Zugangsdaten des
+[DNS-Providers](../domain/dns-provider.md) vertraulich zu behandeln (Least Privilege, keine
+Klartext-Protokollierung, keine Ausgabe in der Statusanzeige) und auf das für die
+Record-Verwaltung notwendige Maß zu beschränken.
+
 > Konkrete Mechanismen zur Ablage und Verteilung von Geheimnissen sind eine
 > **Implementierungsentscheidung** und werden per ADR festgelegt.

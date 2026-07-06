@@ -18,6 +18,7 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | [0007](0007-continuous-reconciliation-self-healing.md) | Kontinuierliche Reconciliation und Self-Healing | Proposed |
 | [0008](0008-bootstrap-single-command-install.md) | Inbetriebnahme über einen Bootstrap-Befehl | Proposed |
 | [0009](0009-persistence-optional-backup-restore.md) | Persistenz über optionales Backup/Restore | Proposed |
+| [0010](0010-dns-ingress-service-discovery.md) | DNS, Ingress und Service-Discovery | Proposed |
 
 > Alle ADRs sind aktuell **Proposed** und damit noch nicht bindend. Sie werden erst nach
 > expliziter Freigabe auf **Accepted** gesetzt.

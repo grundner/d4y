@@ -42,3 +42,6 @@ persistente Daten werden über Backups, nicht über den Server selbst, durable g
   im Config-Repository geändert.
 - Ein Server hält keine persistente Information, die nicht entweder aus dem Config-Repository
   oder aus einem [Backup](backup.md) wiederherstellbar ist.
+- Die externe Erreichbarkeit von Anwendungen hängt **nicht** von der IP eines konkreten Servers
+  ab, sondern von [Routes](route.md) und einem stabilen Eintrittspunkt bzw. D4Y-managed
+  [DNS](dns-provider.md). → [ADR-0010](../decisions/0010-dns-ingress-service-discovery.md)

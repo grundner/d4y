@@ -47,11 +47,19 @@ sind sie noch nicht bindend.
         └────────────────────────┘
              ▲ backup / ▼ restore (nur bei leerem Volume)
         gesteuert durch das Backend
+
+        ┌────────────────────────┐
+        │ Reverse Proxy (Ingress)│  (aus Routes konfiguriert; Hostname → App)
+        └────────────────────────┘
+        ┌────────────────────────┐
+        │ DNS-Provider           │  (managed-Modus: autoritative Records)
+        └────────────────────────┘
 ```
 
 Registry und Backup-Store sind symmetrisch: **Code** ist über Images aus der Registry
-reproduzierbar, **Daten** über Backups aus dem Backup-Store.
-→ [persistence-and-backup](persistence-and-backup.md)
+reproduzierbar, **Daten** über Backups aus dem Backup-Store. Analog wird die Namensauflösung
+(managed-Modus) über einen externen **DNS-Provider** deklarativ verwaltet.
+→ [persistence-and-backup](persistence-and-backup.md) · [networking-and-dns](networking-and-dns.md)
 
 ## Schichten
 
@@ -63,6 +71,8 @@ reproduzierbar, **Daten** über Backups aus dem Backup-Store.
 | Container-Backend-Abstraktion | Engine-neutrale Steuerung | [container-backend-abstraction](container-backend-abstraction.md), [ADR-0005](../decisions/0005-container-backend-abstraction-docker-first.md) |
 | Container-Engine | Ausführung der Container | Docker (erste Impl.) |
 | Backup-Store | Externes Ziel/Quelle für Datendurability | [backup-store](../domain/backup-store.md), [persistence-and-backup](persistence-and-backup.md), [ADR-0009](../decisions/0009-persistence-optional-backup-restore.md) |
+| Ingress / Routing | Externer Zugriff Hostname → App (Reverse Proxy aus Routes) | [route](../domain/route.md), [networking-and-dns](networking-and-dns.md), [ADR-0010](../decisions/0010-dns-ingress-service-discovery.md) |
+| DNS / Discovery | Interne Namen + externe DNS-Records (managed-Modus) | [service-discovery](../domain/service-discovery.md), [dns-provider](../domain/dns-provider.md), [ADR-0010](../decisions/0010-dns-ingress-service-discovery.md) |
 
 ## Betriebsmodell
 
@@ -79,3 +89,4 @@ reproduzierbar, **Daten** über Backups aus dem Backup-Store.
 - [reconciliation-loop.md](reconciliation-loop.md)
 - [bootstrap.md](bootstrap.md)
 - [persistence-and-backup.md](persistence-and-backup.md)
+- [networking-and-dns.md](networking-and-dns.md)

@@ -45,6 +45,10 @@ der Maschine kontinuierlich dem **Soll-Zustand** aus dem Git-Config-Repo entspri
   [Volumes](../domain/volume.md) existieren und — bei **leerem/neuem** Volume und konfiguriertem
   [Backup](../domain/backup.md) — vor dem Start ein Restore erfolgt. Bestehende Live-Daten werden
   nie überschrieben. → [persistence-and-backup](persistence-and-backup.md)
+- **Netzwerk-bewusst** — der Loop gleicht die Reverse-Proxy-Konfiguration mit den deklarierten
+  [Routes](../domain/route.md) ab und hält — im **managed-Modus** — die DNS-Records beim
+  [DNS-Provider](../domain/dns-provider.md) mit dem Soll konsistent.
+  → [networking-and-dns](networking-and-dns.md)
 
 ## Fehlerbehandlung (Prinzipien)
 
