@@ -1,7 +1,8 @@
 # ADR-0007: Kontinuierliche Reconciliation und Self-Healing
 
-Status: Proposed
+Status: Accepted
 Datum: 2026-07-06
+Angenommen: 2026-07-06
 Betrifft: [reconciliation](../domain/reconciliation.md), [desired-vs-actual-state](../domain/desired-vs-actual-state.md), [architecture/reconciliation-loop](../architecture/reconciliation-loop.md)
 
 ## Kontext

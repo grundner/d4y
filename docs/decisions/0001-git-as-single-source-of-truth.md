@@ -1,7 +1,8 @@
 # ADR-0001: Git als einzige Quelle der Wahrheit
 
-Status: Proposed
+Status: Accepted
 Datum: 2026-07-06
+Angenommen: 2026-07-06
 Betrifft: [config-repository](../domain/config-repository.md), [architecture/overview](../architecture/overview.md)
 
 ## Kontext

@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: d4y
+
+d4y:
+  docker:
+    socket-path: /var/run/docker.sock
+    # Leerer API-Versions-Präfix: die Engine wählt ihre Default-Version.
+    api-version: ""
+  desired-state:
+    # ADR-0011 (Interim): lokales Verzeichnis als Sollzustand, später Git.
+    path: ./desired
+  reconcile:
+    interval-ms: 15000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    io.d4y: INFO

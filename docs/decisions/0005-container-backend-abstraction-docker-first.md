@@ -1,7 +1,8 @@
 # ADR-0005: Container-Backend-Abstraktion, Docker als erste Implementierung
 
-Status: Proposed
+Status: Accepted
 Datum: 2026-07-06
+Angenommen: 2026-07-06
 Betrifft: [architecture/container-backend-abstraction](../architecture/container-backend-abstraction.md)
 
 ## Kontext

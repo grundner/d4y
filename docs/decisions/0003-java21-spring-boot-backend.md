@@ -1,7 +1,8 @@
 # ADR-0003: Backend auf Basis von Java 21 und Spring Boot
 
-Status: Proposed
+Status: Accepted
 Datum: 2026-07-06
+Angenommen: 2026-07-06
 Betrifft: [architecture/overview](../architecture/overview.md)
 
 ## Kontext

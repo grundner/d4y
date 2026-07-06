@@ -1,7 +1,8 @@
 # ADR-0006: Auslieferung von Backend und Frontend als einzelnes Container-Image
 
-Status: Proposed
+Status: Accepted
 Datum: 2026-07-06
+Angenommen: 2026-07-06
 Betrifft: [architecture/overview](../architecture/overview.md)
 
 ## Kontext

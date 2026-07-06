@@ -1,0 +1,4 @@
+# Beispiel-Desired-State (ADR-0011 Interim, lokal).
+# Eine Application: Name + unveränderliche Image-Referenz.
+name: nginx
+image: nginx:1.27-alpine
