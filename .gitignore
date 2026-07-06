@@ -1,0 +1,35 @@
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Java / Gradle (vorausschauend; noch kein Code) ---
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+
+# --- Maven (falls verwendet) ---
+target/
+
+# --- Node / Next.js (vorausschauend; noch kein Frontend) ---
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Env / Secrets ---
+.env
+.env.local
+.env.*.local
+*.pem
+
+# --- Logs ---
+*.log
