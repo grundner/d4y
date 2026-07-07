@@ -14,6 +14,8 @@ interface D4yContextValue {
   toggleAutoRefresh: () => void;
   refreshing: boolean;
   manualRefresh: () => void;
+  /** Zähler, der bei jedem Refresh (manuell oder auto) steigt — für Daten-Reloads. */
+  refreshSignal: number;
   mounted: boolean;
 }
 
@@ -27,6 +29,7 @@ export function D4yProvider({ children }: { children: React.ReactNode }) {
   const [snack, setSnack] = React.useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshSignal, setRefreshSignal] = React.useState(0);
 
   // Holds erst clientseitig auf absolute Ablaufzeitpunkte abbilden (keine Hydration-Mismatches).
   React.useEffect(() => {
@@ -54,6 +57,7 @@ export function D4yProvider({ children }: { children: React.ReactNode }) {
 
   const triggerRefresh = React.useCallback(() => {
     setRefreshing(true);
+    setRefreshSignal((n) => n + 1);
     clearTimeout(refreshTimeout.current);
     refreshTimeout.current = setTimeout(() => setRefreshing(false), 950);
   }, []);
@@ -96,6 +100,7 @@ export function D4yProvider({ children }: { children: React.ReactNode }) {
     toggleAutoRefresh: () => setAutoRefresh((v) => !v),
     refreshing,
     manualRefresh: triggerRefresh,
+    refreshSignal,
     mounted,
   };
 
