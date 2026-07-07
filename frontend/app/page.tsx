@@ -13,6 +13,7 @@ import {
   List,
   ListItemButton,
   Paper,
+  Skeleton,
   Stack,
   Typography,
 } from "@mui/material";
@@ -20,11 +21,12 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import StatusChip from "@/components/StatusChip";
 import { useD4y } from "@/lib/store";
-import { ACTIVITY, CONFIG_REPO, UNDECLARED } from "@/lib/mockData";
+import { useStatus } from "@/lib/api";
+import { ACTIVITY } from "@/lib/mockData";
 import { formatCountdown, holdTypeLabel } from "@/lib/format";
 import type { AppState } from "@/lib/types";
 
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+function StatCard({ label, value, color }: { label: string; value: React.ReactNode; color: string }) {
   return (
     <Card variant="outlined">
       <CardContent>
@@ -48,31 +50,32 @@ const ACTION_SUMMARY: Record<string, string> = {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { apps, remaining, releaseHold } = useD4y();
+  const { apps: mockApps, remaining, releaseHold, refreshSignal } = useD4y();
+  const { data, error, loading, reload } = useStatus(refreshSignal);
 
+  const apps = data?.applications ?? [];
+  const undeclared = data?.undeclared ?? [];
   const count = (s: AppState) => apps.filter((a) => a.state === s).length;
-  const activeHolds = apps.filter((a) => a.hold);
+
+  // Holds und Aktivität stammen aus der operativen/Audit-Ebene (noch nicht im /api/status).
+  const activeHolds = mockApps.filter((a) => a.hold);
+  const feed = ACTIVITY.slice(0, 5).map((a) => {
+    const who = a.actor === "system" ? "system" : a.actor.split("@")[0];
+    return { clock: a.time.slice(11), summary: `${ACTION_SUMMARY[a.type] ?? a.type} · ${a.app} · ${who}` };
+  });
 
   const attention = apps
     .filter((a) => a.state !== "IN_SYNC")
     .map((a) => {
       let reason = "";
-      if (a.state === "OUTDATED") {
-        reason = `Ist-Image ${a.actualImage?.split(":").pop()} weicht vom Soll ${a.image.split(":").pop()} ab`;
-      } else if (a.state === "MISSING") {
-        reason = "Container nicht vorhanden — Reconcile ausstehend";
-      } else if (a.state === "STOPPED") {
-        reason = "Manuell gestoppt · Hold aktiv";
-      } else {
-        reason = "Weicht vom Sollzustand ab";
-      }
-      return { name: a.name, state: a.state, reason, href: `/applications/${a.name}` };
+      if (a.state === "OUTDATED") reason = `Ist-Image weicht vom Soll ${a.desiredImage.split(":").pop()} ab`;
+      else if (a.state === "MISSING") reason = "Container nicht vorhanden — Reconcile ausstehend";
+      else if (a.state === "STOPPED") reason = "Nicht laufend";
+      else reason = "Weicht vom Sollzustand ab";
+      return { name: a.name, state: a.state, reason };
     });
 
-  const feed = ACTIVITY.slice(0, 5).map((a) => {
-    const who = a.actor === "system" ? "system" : a.actor.split("@")[0];
-    return { clock: a.time.slice(11), summary: `${ACTION_SUMMARY[a.type] ?? a.type} · ${a.app} · ${who}` };
-  });
+  const isDrift = data?.overall !== "IN_SYNC";
 
   return (
     <>
@@ -85,14 +88,30 @@ export default function DashboardPage() {
         </Typography>
       </Box>
 
-      <Alert severity="warning" sx={{ mb: 3 }}>
-        <AlertTitle sx={{ fontWeight: 600 }}>Gesamtstatus: DRIFT</AlertTitle>
-        1 App veraltet · 1 App fehlt · 1 App gestoppt · {UNDECLARED.length} nicht deklarierte Container. Die
-        letzte Reconciliation vor 42 s wurde erfolgreich abgeschlossen; Selbstheilung ist aktiv.
-        <Box component="span" sx={{ display: "block", mt: 1, fontSize: 13 }}>
-          Config: <Box component="span" sx={{ fontFamily: "monospace" }}>{CONFIG_REPO.version}</Box>
-        </Box>
-      </Alert>
+      {error && !data && (
+        <Alert
+          severity="error"
+          sx={{ mb: 3 }}
+          action={
+            <Button color="inherit" size="small" onClick={reload}>
+              Erneut laden
+            </Button>
+          }
+        >
+          Backend nicht erreichbar ({error}). Läuft das D4Y-Backend auf <code>:8080</code>?
+        </Alert>
+      )}
+
+      {loading && !data ? (
+        <Skeleton variant="rounded" height={92} sx={{ mb: 3 }} />
+      ) : data ? (
+        <Alert severity={isDrift ? "warning" : "success"} sx={{ mb: 3 }}>
+          <AlertTitle sx={{ fontWeight: 600 }}>Gesamtstatus: {isDrift ? "DRIFT" : "IN SYNC"}</AlertTitle>
+          {isDrift
+            ? `${count("OUTDATED")} App(s) veraltet · ${count("MISSING")} fehlt · ${count("STOPPED")} gestoppt · ${undeclared.length} nicht deklarierte Container. Selbstheilung ist aktiv.`
+            : `Alle ${apps.length} Applications entsprechen dem Sollzustand. Selbstheilung ist aktiv.`}
+        </Alert>
+      ) : null}
 
       <Box
         sx={{
@@ -102,12 +121,12 @@ export default function DashboardPage() {
           mb: 3,
         }}
       >
-        <StatCard label="Apps gesamt" value={apps.length} color="text.primary" />
-        <StatCard label="In Sync" value={count("IN_SYNC")} color="success.main" />
-        <StatCard label="Veraltet" value={count("OUTDATED")} color="warning.main" />
-        <StatCard label="Fehlt" value={count("MISSING")} color="error.main" />
-        <StatCard label="Gestoppt" value={count("STOPPED")} color="text.secondary" />
-        <StatCard label="Undeclared" value={UNDECLARED.length} color="warning.main" />
+        <StatCard label="Apps gesamt" value={loading && !data ? <Skeleton width={40} /> : apps.length} color="text.primary" />
+        <StatCard label="In Sync" value={loading && !data ? <Skeleton width={40} /> : count("IN_SYNC")} color="success.main" />
+        <StatCard label="Veraltet" value={loading && !data ? <Skeleton width={40} /> : count("OUTDATED")} color="warning.main" />
+        <StatCard label="Fehlt" value={loading && !data ? <Skeleton width={40} /> : count("MISSING")} color="error.main" />
+        <StatCard label="Gestoppt" value={loading && !data ? <Skeleton width={40} /> : count("STOPPED")} color="text.secondary" />
+        <StatCard label="Undeclared" value={loading && !data ? <Skeleton width={40} /> : undeclared.length} color="warning.main" />
         <StatCard label="Aktive Holds" value={activeHolds.length} color="secondary.main" />
       </Box>
 
@@ -117,7 +136,7 @@ export default function DashboardPage() {
           <Divider />
           <List disablePadding>
             {attention.map((a) => (
-              <ListItemButton key={a.name} onClick={() => router.push(a.href)} sx={{ gap: 1.5 }}>
+              <ListItemButton key={a.name} onClick={() => router.push(`/applications/${a.name}`)} sx={{ gap: 1.5 }}>
                 <StatusChip status={a.state} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{ fontWeight: 500 }}>{a.name}</Typography>
@@ -128,16 +147,23 @@ export default function DashboardPage() {
                 <ChevronRightIcon color="disabled" />
               </ListItemButton>
             ))}
-            <ListItemButton onClick={() => router.push("/applications?tab=undeclared")} sx={{ gap: 1.5 }}>
-              <StatusChip status="DRIFT" />
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontWeight: 500 }}>{UNDECLARED.length} nicht deklarierte Container</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {UNDECLARED.map((u) => u.image).join(" · ")}
-                </Typography>
-              </Box>
-              <ChevronRightIcon color="disabled" />
-            </ListItemButton>
+            {undeclared.length > 0 && (
+              <ListItemButton onClick={() => router.push("/applications?tab=undeclared")} sx={{ gap: 1.5 }}>
+                <StatusChip status="DRIFT" />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 500 }}>{undeclared.length} nicht deklarierte Container</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {undeclared.map((u) => u.image).join(" · ")}
+                  </Typography>
+                </Box>
+                <ChevronRightIcon color="disabled" />
+              </ListItemButton>
+            )}
+            {data && attention.length === 0 && undeclared.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                Alles in Sync — keine Auffälligkeiten.
+              </Typography>
+            )}
           </List>
         </Paper>
 
@@ -191,6 +217,12 @@ export default function DashboardPage() {
           </Paper>
         </Stack>
       </Box>
+
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
+        Kennzahlen, Gesamtstatus und „Braucht Aufmerksamkeit&quot; sind live aus{" "}
+        <code>GET /api/status</code>. Aktive Holds und Aktivität stammen aus der operativen/Audit-Ebene und folgen mit
+        den entsprechenden Backend-Ausbaustufen.
+      </Typography>
     </>
   );
 }
