@@ -14,7 +14,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  MenuItem,
   Paper,
+  Skeleton,
   Stack,
   Tab,
   Table,
@@ -24,6 +26,7 @@ import {
   TableHead,
   TableRow,
   Tabs,
+  TextField,
   Typography,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -32,15 +35,31 @@ import StopIcon from "@mui/icons-material/Stop";
 import TuneIcon from "@mui/icons-material/Tune";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import TerminalIcon from "@mui/icons-material/Terminal";
 import StatusChip from "@/components/StatusChip";
-import LogConsole from "@/components/LogConsole";
+import LogsPanel from "@/components/LogsPanel";
+import ExecPanel from "@/components/ExecPanel";
 import { useD4y } from "@/lib/store";
-import { TERM_LINES } from "@/lib/mockData";
+import { useStatus } from "@/lib/api";
 import { formatCountdown, holdTypeLabel } from "@/lib/format";
+import {
+  restartApp,
+  stopApp,
+  setParams,
+  setHold,
+  releaseHold,
+  inspectApp,
+  type ContainerDetails,
+} from "@/lib/actions";
+import type { AppState } from "@/lib/types";
 
-const GIT_HINT_VOLUMES = "Volumes, Persistenz und Backup-Policy sind deklarativ. Änderung nur über das Config-Repository (Git).";
-const GIT_HINT_ROUTES = "Routes und DNS-Zuordnungen sind deklarativ. Änderung nur über das Config-Repository (Git).";
+const DURATIONS = [
+  { label: "5 Minuten", min: 5 },
+  { label: "15 Minuten", min: 15 },
+  { label: "30 Minuten", min: 30 },
+  { label: "60 Minuten", min: 60 },
+];
+
+type DialogKind = "restart" | "stop" | "params" | "hold" | null;
 
 function EmptyState({ text }: { text: string }) {
   return (
@@ -50,12 +69,11 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
-function GitHint({ text }: { text: string }) {
+function PendingNote({ text }: { text: string }) {
   return (
-    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: "text.secondary", fontSize: 12.5 }}>
-      <LockOutlinedIcon sx={{ fontSize: 15 }} />
-      <span>{text}</span>
-    </Stack>
+    <Alert severity="info" icon={<LockOutlinedIcon />}>
+      {text}
+    </Alert>
   );
 }
 
@@ -63,11 +81,47 @@ export default function AppDetailPage() {
   const router = useRouter();
   const params = useParams();
   const name = decodeURIComponent(String(params.name));
-  const { apps, remaining, releaseHold, showSnack } = useD4y();
-  const [tab, setTab] = React.useState("overview");
-  const [confirm, setConfirm] = React.useState<{ title: string; message: string; run: () => void } | null>(null);
+  const { showSnack, refreshSignal, manualRefresh } = useD4y();
 
-  const cur = apps.find((a) => a.name === name);
+  const [localReload, setLocalReload] = React.useState(0);
+  const reloadKey = refreshSignal + localReload;
+  const { data, error, loading } = useStatus(reloadKey);
+  const reload = () => setLocalReload((n) => n + 1);
+
+  const [details, setDetails] = React.useState<ContainerDetails | null>(null);
+  const [tab, setTab] = React.useState("overview");
+
+  const [dlg, setDlg] = React.useState<DialogKind>(null);
+  const [durationMin, setDurationMin] = React.useState(15);
+  const [envKey, setEnvKey] = React.useState("LOG_LEVEL");
+  const [envValue, setEnvValue] = React.useState("debug");
+  const [busy, setBusy] = React.useState(false);
+
+  const cur = data?.applications.find((a) => a.name === name) ?? null;
+
+  React.useEffect(() => {
+    let alive = true;
+    inspectApp(name)
+      .then((d) => alive && setDetails(d))
+      .catch(() => alive && setDetails(null));
+    return () => {
+      alive = false;
+    };
+  }, [name, reloadKey]);
+
+  if (loading && !data) {
+    return <Skeleton variant="rounded" height={200} />;
+  }
+  if (error && !data) {
+    return (
+      <>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => router.push("/applications")} sx={{ mb: 2 }}>
+          Zurück zu Applications
+        </Button>
+        <Alert severity="error">Backend nicht erreichbar ({error}).</Alert>
+      </>
+    );
+  }
   if (!cur) {
     return (
       <>
@@ -79,13 +133,48 @@ export default function AppDetailPage() {
     );
   }
 
-  const holdActive = !!cur.hold;
-  const rem = formatCountdown(remaining(cur.name));
-  const serviceName = `${cur.name}.d4y.internal`;
-  const actualImage = cur.actualImage || cur.image;
-  const imageMismatch = !!cur.actualImage && cur.actualImage !== cur.image;
+  const hold = cur.hold ?? null;
+  const rem = hold ? formatCountdown(hold.remainingSeconds) : "";
+  const actualImage = details?.image ?? cur.desiredImage;
+  const imageMismatch = !!details && details.image !== cur.desiredImage;
 
-  const ask = (title: string, message: string, run: () => void) => setConfirm({ title, message, run });
+  async function runDialog() {
+    setBusy(true);
+    try {
+      const secs = durationMin * 60;
+      if (dlg === "restart") {
+        await restartApp(name);
+        showSnack(`Neustart von ${name} angefordert.`);
+      } else if (dlg === "stop") {
+        await stopApp(name, secs);
+        showSnack(`Stop von ${name} — Hold ${durationMin} min.`);
+      } else if (dlg === "params") {
+        await setParams(name, { [envKey]: envValue }, secs);
+        showSnack(`Temporäre Parameter für ${name} gesetzt — Hold ${durationMin} min.`);
+      } else if (dlg === "hold") {
+        await setHold(name, "MANUAL", secs);
+        showSnack(`Hold für ${name} gesetzt (${durationMin} min).`);
+      }
+      setDlg(null);
+      reload();
+      manualRefresh();
+    } catch (e: any) {
+      showSnack("Fehler: " + (e?.message || e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doRelease() {
+    try {
+      await releaseHold(name);
+      showSnack(`Hold für ${name} freigegeben — D4Y reconciled den Sollzustand.`);
+      reload();
+      manualRefresh();
+    } catch (e: any) {
+      showSnack("Fehler: " + (e?.message || e));
+    }
+  }
 
   return (
     <>
@@ -95,10 +184,10 @@ export default function AppDetailPage() {
 
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
         <Typography variant="h4" sx={{ fontWeight: 400 }}>
-          {cur.name}
+          {name}
         </Typography>
-        <StatusChip status={cur.state} />
-        {holdActive && (
+        <StatusChip status={cur.state as AppState} />
+        {hold && (
           <Chip color="secondary" size="small" icon={<ScheduleIcon />} label={`HOLD ${rem}`} sx={{ fontWeight: 500 }} />
         )}
       </Stack>
@@ -106,67 +195,33 @@ export default function AppDetailPage() {
         <span>
           Desired Image:{" "}
           <Box component="span" sx={{ fontFamily: "monospace", color: "text.primary" }}>
-            {cur.image}
+            {cur.desiredImage}
           </Box>
         </span>
         <span>
           Service-Discovery:{" "}
           <Box component="span" sx={{ fontFamily: "monospace", color: "text.primary" }}>
-            {serviceName}
+            {name}.d4y.internal
           </Box>
         </span>
       </Stack>
 
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 1 }}>
-        <Button
-          variant="contained"
-          startIcon={<RestartAltIcon />}
-          onClick={() => ask("Restart bestätigen", `Neustart von ${cur.name} anfordern?`, () => showSnack(`Neustart von ${cur.name} angefordert.`))}
-        >
+        <Button variant="contained" startIcon={<RestartAltIcon />} onClick={() => setDlg("restart")}>
           Restart
         </Button>
-        <Button
-          variant="outlined"
-          color="inherit"
-          startIcon={<StopIcon />}
-          onClick={() =>
-            ask(
-              "Stop bestätigen",
-              `${cur.name} stoppen? Dies erzeugt sanktionierte, temporäre Drift und setzt einen zeitlich begrenzten Hold.`,
-              () => showSnack(`Stop von ${cur.name} — setzt einen zeitlich begrenzten Hold.`)
-            )
-          }
-        >
+        <Button variant="outlined" color="inherit" startIcon={<StopIcon />} onClick={() => setDlg("stop")}>
           Stop (mit Hold)
         </Button>
-        <Button
-          variant="outlined"
-          color="inherit"
-          startIcon={<TuneIcon />}
-          onClick={() =>
-            ask(
-              "Temporäre Parameter",
-              `Temporären Parameter-Override für ${cur.name} setzen? Erzeugt sanktionierte, temporäre Drift und einen zeitlich begrenzten Hold.`,
-              () => showSnack(`Temporäre Parameter für ${cur.name} — setzt einen zeitlich begrenzten Hold.`)
-            )
-          }
-        >
+        <Button variant="outlined" color="inherit" startIcon={<TuneIcon />} onClick={() => setDlg("params")}>
           Temporäre Parameter
         </Button>
-        {holdActive ? (
-          <Button variant="outlined" color="secondary" onClick={() => releaseHold(cur.name)}>
+        {hold ? (
+          <Button variant="outlined" color="secondary" onClick={doRelease}>
             Hold freigeben
           </Button>
         ) : (
-          <Button
-            variant="outlined"
-            color="inherit"
-            onClick={() =>
-              ask("Hold setzen", `Zeitlich begrenzten Hold für ${cur.name} setzen?`, () =>
-                showSnack(`Hold für ${cur.name} gesetzt (zeitlich begrenzt).`)
-              )
-            }
-          >
+          <Button variant="outlined" color="inherit" onClick={() => setDlg("hold")}>
             Hold setzen
           </Button>
         )}
@@ -176,38 +231,32 @@ export default function AppDetailPage() {
         temporäre Drift und setzen automatisch einen zeitlich begrenzten Hold.
       </Typography>
 
-      {holdActive && (
+      {hold && (
         <Alert
           icon={<ScheduleIcon />}
           severity="info"
           sx={{ mb: 2, bgcolor: "#f3e5f5", color: "#4a148c" }}
           action={
-            <Button color="secondary" size="small" onClick={() => releaseHold(cur.name)}>
+            <Button color="secondary" size="small" onClick={doRelease}>
               Freigeben
             </Button>
           }
         >
-          Gehalten (Hold) · {holdTypeLabel(cur.hold!.type)} aktiv — läuft automatisch ab in{" "}
+          Gehalten (Hold) · {holdTypeLabel(hold.type.toLowerCase().replace("_", "-"))} aktiv — läuft automatisch ab in{" "}
           <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
             {rem}
           </Box>
-          . Der deklarative Sollzustand bleibt unverändert; nach Ablauf reconciled D4Y selbstständig.
+          . Der Sollzustand bleibt unverändert; nach Ablauf reconciled D4Y selbstständig.
         </Alert>
       )}
 
-      <Tabs
-        value={tab}
-        onChange={(_e, v) => setTab(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{ borderBottom: 1, borderColor: "divider", mb: 2.5 }}
-      >
+      <Tabs value={tab} onChange={(_e, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: "divider", mb: 2.5 }}>
         <Tab value="overview" label="Übersicht" />
         <Tab value="logs" label="Logs" />
         <Tab value="exec" label="exec / Shell" />
         <Tab value="volumes" label="Volumes" />
         <Tab value="routes" label="Routes" />
-        <Tab value="params" label="Parameter / Hold" />
+        <Tab value="hold" label="Hold" />
       </Tabs>
 
       {tab === "overview" && (
@@ -224,7 +273,7 @@ export default function AppDetailPage() {
               <TableBody>
                 <TableRow>
                   <TableCell sx={{ color: "text.secondary" }}>Image</TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{cur.image}</TableCell>
+                  <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{cur.desiredImage}</TableCell>
                   <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, ...(imageMismatch ? { bgcolor: "#fff4e5", color: "#8a5200" } : {}) }}>
                     {actualImage}
                     {imageMismatch ? " · weicht ab" : ""}
@@ -239,13 +288,13 @@ export default function AppDetailPage() {
                   <TableCell sx={{ color: "text.secondary" }}>Container-ID</TableCell>
                   <TableCell sx={{ color: "text.disabled" }}>—</TableCell>
                   <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, color: "text.secondary" }}>
-                    {cur.containerId || "—"}
+                    {cur.containerId ? cur.containerId.slice(0, 12) : "—"}
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary" }}>Server / Node</TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>Erstellt</TableCell>
                   <TableCell sx={{ color: "text.disabled" }}>—</TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, color: "text.secondary" }}>{cur.server}</TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>{details?.createdAt ?? "—"}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -257,10 +306,10 @@ export default function AppDetailPage() {
                   Sync-State
                 </Typography>
                 <Box sx={{ mt: 1.5, mb: 1.5 }}>
-                  <StatusChip status={cur.state} />
+                  <StatusChip status={cur.state as AppState} />
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  Letzter Reconcile: vor 42 s · OK
+                  Live aus <code>GET /api/status</code>
                 </Typography>
               </CardContent>
             </Card>
@@ -279,201 +328,87 @@ export default function AppDetailPage() {
         </>
       )}
 
-      {tab === "logs" && <LogConsole appName={cur.name} />}
-
-      {tab === "exec" && (
-        <Box sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.18)" }}>
-          <Stack direction="row" alignItems="center" spacing={1.25} sx={{ bgcolor: "#2d2d2d", color: "#ddd", px: 1.75, py: 1, fontSize: 13 }}>
-            <TerminalIcon sx={{ color: "#4caf50", fontSize: 18 }} />
-            <span>exec / Shell · Debugging-Sitzung</span>
-            <Box sx={{ flex: 1 }} />
-            <Box sx={{ fontFamily: "monospace", color: "#aaa", fontSize: 12 }}>{serviceName}</Box>
-          </Stack>
-          <Box sx={{ bgcolor: "#1e1e1e", color: "#d4d4d4", fontFamily: "monospace", fontSize: 12.5, lineHeight: 1.75, p: 2, minHeight: 220 }}>
-            {TERM_LINES.map((tl, i) =>
-              tl.t === "cmd" ? (
-                <Box key={i}>
-                  <Box component="span" sx={{ color: "#4caf50" }}>
-                    root@{cur.name}:/app#
-                  </Box>{" "}
-                  <Box component="span" sx={{ color: "#fff" }}>
-                    {tl.text}
-                  </Box>
+      {tab === "logs" && <LogsPanel name={name} />}
+      {tab === "exec" && <ExecPanel name={name} />}
+      {tab === "volumes" && (
+        <PendingNote text="Volumes, Persistenz und Backup-Policy sind noch nicht Teil des API und folgen mit der Backend-Ausbaustufe. Deklaration erfolgt über das Config-Repository (Git)." />
+      )}
+      {tab === "routes" && (
+        <PendingNote text="Routes und DNS-Zuordnungen sind noch nicht Teil des API und folgen mit der Backend-Ausbaustufe. Deklaration erfolgt über das Config-Repository (Git)." />
+      )}
+      {tab === "hold" && (
+        hold ? (
+          <Card variant="outlined" sx={{ borderColor: "rgba(156,39,176,0.35)" }}>
+            <CardContent>
+              <Stack direction="row" spacing={2.25} alignItems="center">
+                <Box sx={{ width: 70, height: 70, borderRadius: "50%", bgcolor: "#f3e5f5", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+                  <ScheduleIcon sx={{ color: "#9c27b0", fontSize: 34 }} />
                 </Box>
-              ) : (
-                <Box key={i} sx={{ color: "#9e9e9e" }}>
-                  {tl.text}
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 500 }}>{holdTypeLabel(hold.type.toLowerCase().replace("_", "-"))} · aktiv</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Verbleibend{" "}
+                    <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600, color: "secondary.main", fontSize: 16 }}>
+                      {rem}
+                    </Box>{" "}
+                    · Hold ist immer zeitlich begrenzt und läuft automatisch ab.
+                  </Typography>
                 </Box>
-              )
-            )}
-            <Box>
-              <Box component="span" sx={{ color: "#4caf50" }}>
-                root@{cur.name}:/app#
-              </Box>{" "}
-              <Box component="span" sx={{ display: "inline-block", width: 8, height: 15, bgcolor: "#d4d4d4", verticalAlign: "middle", animation: "d4yblink 1s infinite" }} />
-            </Box>
-          </Box>
-          <Typography sx={{ bgcolor: "#2d2d2d", color: "#888", px: 1.75, py: 0.9, fontSize: 11.5 }}>
-            Flüchtige Debug-Sitzung · kann sanktionierte, temporäre Drift erzeugen · keine Geheimnisse in der Ausgabe.
-          </Typography>
-        </Box>
+                <Button variant="outlined" color="secondary" onClick={doRelease}>
+                  Freigeben
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        ) : (
+          <EmptyState text="Kein aktiver Hold." />
+        )
       )}
 
-      {tab === "volumes" &&
-        (cur.volumes.length ? (
-          <>
-            <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Typ</TableCell>
-                    <TableCell>Persistenz</TableCell>
-                    <TableCell>Backup-Policy</TableCell>
-                    <TableCell>Backup-Store</TableCell>
-                    <TableCell>Letzter Restore</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {cur.volumes.map((v) => (
-                    <TableRow key={v.name}>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{v.name}</TableCell>
-                      <TableCell sx={{ color: "text.secondary" }}>{v.type}</TableCell>
-                      <TableCell sx={{ color: "text.secondary" }}>{v.persist}</TableCell>
-                      <TableCell>
-                        {v.backup ? (
-                          <Stack direction="row" spacing={0.7} alignItems="center" sx={{ color: "success.main" }}>
-                            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "success.main" }} />
-                            <span>An</span>
-                          </Stack>
-                        ) : (
-                          <Typography component="span" color="text.disabled">
-                            Aus
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, color: "text.secondary" }}>{v.store}</TableCell>
-                      <TableCell sx={{ color: "text.secondary" }}>{v.restore}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <GitHint text={GIT_HINT_VOLUMES} />
-          </>
-        ) : (
-          <>
-            <EmptyState text="Keine Volumes deklariert." />
-            <GitHint text={GIT_HINT_VOLUMES} />
-          </>
-        ))}
-
-      {tab === "routes" &&
-        (cur.routes.length ? (
-          <>
-            <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Hostname</TableCell>
-                    <TableCell>Ziel-App</TableCell>
-                    <TableCell>DNS-Modus</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {cur.routes.map((host) => (
-                    <TableRow key={host}>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{host}</TableCell>
-                      <TableCell sx={{ color: "text.secondary" }}>{cur.name}</TableCell>
-                      <TableCell>
-                        <Chip size="small" label="managed" sx={{ bgcolor: "#e5f6fd", color: "#01579b", fontWeight: 500 }} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <GitHint text={GIT_HINT_ROUTES} />
-          </>
-        ) : (
-          <EmptyState text="Keine Routes zugeordnet — diese App ist nicht öffentlich erreichbar." />
-        ))}
-
-      {tab === "params" && (
-        <>
-          <Typography sx={{ fontWeight: 500, mb: 1.5 }}>Temporäre Parameter-Overrides (transient)</Typography>
-          {cur.tempParams.length ? (
-            <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Key</TableCell>
-                    <TableCell>Wert</TableCell>
-                    <TableCell>Gesetzt von</TableCell>
-                    <TableCell>Seit</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {cur.tempParams.map((p) => (
-                    <TableRow key={p.key}>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{p.key}</TableCell>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, color: "#8a5200" }}>{p.value}</TableCell>
-                      <TableCell sx={{ color: "text.secondary" }}>{p.by}</TableCell>
-                      <TableCell sx={{ color: "text.secondary" }}>{p.since}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          ) : (
-            <EmptyState text="Keine aktiven Parameter-Overrides." />
-          )}
-          <Typography sx={{ fontWeight: 500, mb: 1.5 }}>Hold</Typography>
-          {holdActive ? (
-            <Card variant="outlined" sx={{ borderColor: "rgba(156,39,176,0.35)" }}>
-              <CardContent>
-                <Stack direction="row" spacing={2.25} alignItems="center">
-                  <Box sx={{ width: 70, height: 70, borderRadius: "50%", bgcolor: "#f3e5f5", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
-                    <ScheduleIcon sx={{ color: "#9c27b0", fontSize: 34 }} />
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography sx={{ fontWeight: 500 }}>{holdTypeLabel(cur.hold!.type)} · aktiv</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      Verbleibend{" "}
-                      <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600, color: "secondary.main", fontSize: 16 }}>
-                        {rem}
-                      </Box>{" "}
-                      · Hold ist immer zeitlich begrenzt und läuft automatisch ab.
-                    </Typography>
-                  </Box>
-                  <Button variant="outlined" color="secondary" onClick={() => releaseHold(cur.name)}>
-                    Freigeben
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          ) : (
-            <EmptyState text="Kein aktiver Hold." />
-          )}
-        </>
-      )}
-
-      <Dialog open={!!confirm} onClose={() => setConfirm(null)}>
-        <DialogTitle>{confirm?.title}</DialogTitle>
+      <Dialog open={dlg !== null} onClose={() => (busy ? null : setDlg(null))} fullWidth maxWidth="xs">
+        <DialogTitle>
+          {dlg === "restart" && "Restart bestätigen"}
+          {dlg === "stop" && "Stop bestätigen"}
+          {dlg === "params" && "Temporäre Parameter"}
+          {dlg === "hold" && "Hold setzen"}
+        </DialogTitle>
         <DialogContent>
-          <DialogContentText>{confirm?.message}</DialogContentText>
+          {dlg === "restart" && <DialogContentText>Neustart von {name} anfordern?</DialogContentText>}
+          {(dlg === "stop" || dlg === "hold" || dlg === "params") && (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              {dlg !== "hold" && (
+                <DialogContentText>
+                  Erzeugt sanktionierte, temporäre Drift und setzt einen zeitlich begrenzten Hold.
+                </DialogContentText>
+              )}
+              {dlg === "params" && (
+                <Stack direction="row" spacing={1}>
+                  <TextField label="Env-Key" value={envKey} onChange={(e) => setEnvKey(e.target.value)} size="small" fullWidth />
+                  <TextField label="Wert" value={envValue} onChange={(e) => setEnvValue(e.target.value)} size="small" fullWidth />
+                </Stack>
+              )}
+              <TextField
+                select
+                label="Hold-Dauer"
+                value={durationMin}
+                onChange={(e) => setDurationMin(Number(e.target.value))}
+                size="small"
+                fullWidth
+              >
+                {DURATIONS.map((d) => (
+                  <MenuItem key={d.min} value={d.min}>
+                    {d.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button color="inherit" onClick={() => setConfirm(null)}>
+          <Button color="inherit" onClick={() => setDlg(null)} disabled={busy}>
             Abbrechen
           </Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              confirm?.run();
-              setConfirm(null);
-            }}
-          >
+          <Button variant="contained" onClick={runDialog} disabled={busy || (dlg === "params" && !envKey)}>
             Bestätigen
           </Button>
         </DialogActions>

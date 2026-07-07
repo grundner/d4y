@@ -4,12 +4,18 @@ import * as React from "react";
 import type { AppState } from "./types";
 
 // Schema von GET /api/status (siehe Backend StatusController).
+export interface StatusHold {
+  type: string;
+  remainingSeconds: number;
+}
+
 export interface StatusApp {
   name: string;
   desiredImage: string;
   state: AppState;
   running: boolean;
   containerId: string | null;
+  hold?: StatusHold | null;
 }
 
 export interface StatusUndeclared {
