@@ -98,7 +98,7 @@ export default function DashboardPage() {
             </Button>
           }
         >
-          Backend nicht erreichbar ({error}). Läuft das D4Y-Backend auf <code>:8080</code>?
+          {error}
         </Alert>
       )}
 

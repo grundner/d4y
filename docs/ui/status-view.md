@@ -51,5 +51,20 @@ der die Plattform automatisch zum Sollzustand zurückkehrt.
   → [privacy-rules](../rules/privacy-rules.md)
 - **Ehrliche Darstellung:** Fehlerzustände werden sichtbar gemacht, nicht verschleiert.
 
+## Fehlerzustände (Backend/Engine nicht erreichbar)
+
+Der **Fehler**-Status umfasst auch den Fall, dass die Status-Abfrage nicht beantwortet werden kann,
+weil die Container-Engine nicht erreichbar ist (z. B. Docker-Daemon nicht gestartet). Das Backend
+antwortet dann nicht mit einem rohen 500, sondern mit einem klaren Status samt maschinen- und
+menschenlesbarer Meldung:
+
+- **HTTP 503** — Engine nicht erreichbar (Verbindungsaufbau zum Socket scheitert).
+- **HTTP 502** — Engine erreichbar, antwortet aber mit einem Fehlerstatus.
+
+Body: `{ "error": "docker-unavailable" | "docker-error", "message": "…" }`. Das Frontend zeigt die
+`message` unverfälscht als Fehlerzustand an (ehrliche Darstellung). Der
+[Reconciliation-Loop](../domain/reconciliation.md) behandelt denselben Fall als vorübergehend und
+versucht es beim nächsten Intervall erneut.
+
 > Konkrete Layouts, Komponenten und die API-Anbindung sind **Implementierungsdetails** und
 > werden bei der Umsetzung festgelegt.

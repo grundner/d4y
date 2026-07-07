@@ -118,7 +118,7 @@ export default function AppDetailPage() {
         <Button startIcon={<ArrowBackIcon />} onClick={() => router.push("/applications")} sx={{ mb: 2 }}>
           Zurück zu Applications
         </Button>
-        <Alert severity="error">Backend nicht erreichbar ({error}).</Alert>
+        <Alert severity="error">{error}</Alert>
       </>
     );
   }

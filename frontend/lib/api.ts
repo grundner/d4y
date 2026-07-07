@@ -49,12 +49,29 @@ export function useStatus(reloadKey: number): UseStatusResult {
   const load = React.useCallback(async (signal?: AbortSignal) => {
     try {
       const res = await fetch("/api/status", { signal, cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        // Das Backend liefert bei Fehlern einen JSON-Body { error, message } (siehe
+        // ApiExceptionHandler) — die Message ehrlich durchreichen, statt nur "HTTP 503".
+        let message = `HTTP ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.message) message = body.message;
+        } catch {
+          /* kein JSON-Body */
+        }
+        throw new Error(message);
+      }
       const json = (await res.json()) as StatusResponse;
       setData(json);
       setError(null);
     } catch (e: any) {
-      if (e?.name !== "AbortError") setError(e?.message || "Backend nicht erreichbar");
+      if (e?.name === "AbortError") return;
+      // fetch selbst wirft (TypeError) nur, wenn das Backend gar nicht antwortet.
+      const message =
+        e instanceof TypeError
+          ? "Backend nicht erreichbar auf :8080. Läuft das D4Y-Backend?"
+          : e?.message || "Unbekannter Fehler";
+      setError(message);
     } finally {
       setLoading(false);
     }
