@@ -13,7 +13,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 public record D4yProperties(
         @DefaultValue Docker docker,
         @DefaultValue DesiredState desiredState,
-        @DefaultValue Reconcile reconcile) {
+        @DefaultValue Reconcile reconcile,
+        @DefaultValue Operations operations) {
 
     /** Anbindung an die Docker-Engine (HTTP über Unix-Socket). */
     public record Docker(
@@ -28,5 +29,17 @@ public record D4yProperties(
 
     /** Steuerung des Reconciliation-Loops. */
     public record Reconcile(@DefaultValue("15000") long intervalMs) {
+    }
+
+    /** Operative Aktionen und Hold (ADR-0013). */
+    public record Operations(@DefaultValue HoldConfig hold, @DefaultValue LogsConfig logs) {
+    }
+
+    public record HoldConfig(
+            @DefaultValue("900") long defaultSeconds,
+            @DefaultValue("3600") long maxSeconds) {
+    }
+
+    public record LogsConfig(@DefaultValue("200") int defaultTail) {
     }
 }

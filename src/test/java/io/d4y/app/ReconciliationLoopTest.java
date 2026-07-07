@@ -1,8 +1,12 @@
 package io.d4y.app;
 
+import io.d4y.TestFixtures;
 import io.d4y.domain.model.Application;
+import io.d4y.domain.model.ContainerDetails;
 import io.d4y.domain.model.ContainerSpec;
 import io.d4y.domain.model.DesiredState;
+import io.d4y.domain.model.ExecResult;
+import io.d4y.domain.model.HoldType;
 import io.d4y.domain.model.ImageRef;
 import io.d4y.domain.model.ObservedContainer;
 import io.d4y.domain.reconcile.Reconciler;
@@ -31,7 +35,6 @@ class ReconciliationLoopTest {
 
         @Override
         public void ensureImage(ImageRef image) {
-            // no-op
         }
 
         @Override
@@ -45,6 +48,31 @@ class ReconciliationLoopTest {
         @Override
         public void stopAndRemove(String containerId) {
             containers.removeIf(c -> c.id().equals(containerId));
+        }
+
+        @Override
+        public void restart(String containerId) {
+        }
+
+        @Override
+        public void stop(String containerId) {
+            containers.replaceAll(c -> c.id().equals(containerId)
+                    ? new ObservedContainer(c.id(), c.appName(), c.image(), false) : c);
+        }
+
+        @Override
+        public String logs(String containerId, int tail) {
+            return "";
+        }
+
+        @Override
+        public ContainerDetails inspect(String containerId) {
+            return new ContainerDetails(containerId, "", "", "", "", "", List.of());
+        }
+
+        @Override
+        public ExecResult exec(String containerId, List<String> cmd) {
+            return new ExecResult("", 0);
         }
 
         void crash(String appName) {
@@ -69,30 +97,55 @@ class ReconciliationLoopTest {
         return new DesiredState(List.of(new Application(name, ImageRef.of(image))));
     }
 
+    private ReconciliationLoop loop(DesiredStateSource source, ContainerBackend backend, HoldRegistry holds) {
+        return new ReconciliationLoop(source, backend, new Reconciler(), holds, new AuditLog());
+    }
+
     @Test
     void createsThenStaysIdempotentThenSelfHealsThenCleansDrift() {
         FakeBackend backend = new FakeBackend();
         MutableSource source = new MutableSource(desired("web", "nginx:1.27"));
-        ReconciliationLoop loop = new ReconciliationLoop(source, backend, new Reconciler());
+        HoldRegistry holds = new HoldRegistry(TestFixtures.props());
+        ReconciliationLoop loop = loop(source, backend, holds);
 
-        // 1) Erstlauf: App wird angelegt.
         loop.reconcile();
         assertThat(backend.containers).hasSize(1);
         assertThat(backend.runCount.get()).isEqualTo(1);
 
-        // 2) Zweitlauf: bereits in Sync → idempotent, kein weiterer run.
         loop.reconcile();
         assertThat(backend.runCount.get()).isEqualTo(1);
 
-        // 3) Self-Healing: Container "stürzt ab" → nächster Lauf legt ihn neu an.
         backend.crash("web");
         loop.reconcile();
         assertThat(backend.containers).hasSize(1);
         assertThat(backend.runCount.get()).isEqualTo(2);
 
-        // 4) Drift-Bereinigung: App aus dem Soll entfernt → Container wird entfernt.
         source.state = DesiredState.empty();
         loop.reconcile();
         assertThat(backend.containers).isEmpty();
+    }
+
+    @Test
+    void heldAppIsNotReconciled() {
+        FakeBackend backend = new FakeBackend();
+        MutableSource source = new MutableSource(desired("web", "nginx:1.27"));
+        HoldRegistry holds = new HoldRegistry(TestFixtures.props());
+        ReconciliationLoop loop = loop(source, backend, holds);
+
+        loop.reconcile();
+        assertThat(backend.containers).hasSize(1);
+
+        // Gehalten + abgestürzt: der Loop stellt NICHT wieder her.
+        holds.set("web", HoldType.STOP, 300);
+        backend.crash("web");
+        loop.reconcile();
+        assertThat(backend.containers).isEmpty();
+        assertThat(backend.runCount.get()).isEqualTo(1);
+
+        // Nach Freigabe heilt der Loop wieder.
+        holds.release("web");
+        loop.reconcile();
+        assertThat(backend.containers).hasSize(1);
+        assertThat(backend.runCount.get()).isEqualTo(2);
     }
 }

@@ -2,8 +2,10 @@ package io.d4y.adapter.docker;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.d4y.domain.model.ContainerDetails;
 import io.d4y.domain.model.ContainerSpec;
 import io.d4y.domain.model.D4yLabels;
+import io.d4y.domain.model.ExecResult;
 import io.d4y.domain.model.ImageRef;
 import io.d4y.domain.model.ObservedContainer;
 import io.d4y.port.ContainerBackend;
@@ -79,6 +81,9 @@ public class DockerContainerBackend implements ContainerBackend {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("Image", spec.image().reference());
         body.put("Labels", labels);
+        if (!spec.env().isEmpty()) {
+            body.put("Env", spec.env().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).toList());
+        }
 
         String createPath = "/containers/create?name=" + enc("d4y_" + spec.appName());
         DockerHttpClient.Response created = docker.post(createPath, toJson(body));
@@ -98,6 +103,80 @@ public class DockerContainerBackend implements ContainerBackend {
         DockerHttpClient.Response removed = docker.delete("/containers/" + containerId + "?force=true");
         requireOneOfOrMissing(removed, "Container entfernen", 204);
         log.info("Container {} gestoppt und entfernt", shortId(containerId));
+    }
+
+    @Override
+    public void restart(String containerId) {
+        DockerHttpClient.Response r = docker.post("/containers/" + containerId + "/restart?t=5", null);
+        requireOneOf(r, "Container neu starten", 204);
+        log.info("Container {} neu gestartet", shortId(containerId));
+    }
+
+    @Override
+    public void stop(String containerId) {
+        DockerHttpClient.Response r = docker.post("/containers/" + containerId + "/stop?t=5", null);
+        requireOneOfOrMissing(r, "Container stoppen", 204, 304);
+        log.info("Container {} gestoppt", shortId(containerId));
+    }
+
+    @Override
+    public String logs(String containerId, int tail) {
+        DockerHttpClient.ResponseBytes r =
+                docker.getBytes("/containers/" + containerId + "/logs?stdout=1&stderr=1&tail=" + tail);
+        if (!r.isSuccess()) {
+            throw new DockerApiException("Logs lesen", r.status(), "");
+        }
+        return DockerStreamDemux.demux(r.body());
+    }
+
+    @Override
+    public ContainerDetails inspect(String containerId) {
+        DockerHttpClient.Response r = docker.get("/containers/" + containerId + "/json");
+        require(r, "Container inspizieren");
+        JsonNode n = readTree(r.body());
+        JsonNode state = n.path("State");
+        JsonNode config = n.path("Config");
+        List<String> env = new ArrayList<>();
+        if (config.path("Env").isArray()) {
+            config.path("Env").forEach(e -> env.add(e.asText()));
+        }
+        String name = n.path("Name").asText("");
+        if (name.startsWith("/")) {
+            name = name.substring(1);
+        }
+        return new ContainerDetails(
+                n.path("Id").asText(),
+                name,
+                config.path("Image").asText(),
+                state.path("Status").asText(),
+                state.path("Status").asText(),
+                n.path("Created").asText(),
+                env);
+    }
+
+    @Override
+    public ExecResult exec(String containerId, List<String> cmd) {
+        Map<String, Object> createBody = new LinkedHashMap<>();
+        createBody.put("AttachStdout", true);
+        createBody.put("AttachStderr", true);
+        createBody.put("Tty", false);
+        createBody.put("Cmd", cmd);
+        DockerHttpClient.Response created = docker.post("/containers/" + containerId + "/exec", toJson(createBody));
+        require(created, "exec erzeugen");
+        String execId = readTree(created.body()).path("Id").asText();
+
+        Map<String, Object> startBody = new LinkedHashMap<>();
+        startBody.put("Detach", false);
+        startBody.put("Tty", false);
+        DockerHttpClient.ResponseBytes started = docker.postBytes("/exec/" + execId + "/start", toJson(startBody));
+        if (!started.isSuccess()) {
+            throw new DockerApiException("exec starten", started.status(), "");
+        }
+        String output = DockerStreamDemux.demux(started.body());
+
+        DockerHttpClient.Response inspectExec = docker.get("/exec/" + execId + "/json");
+        int exitCode = inspectExec.isSuccess() ? readTree(inspectExec.body()).path("ExitCode").asInt(0) : -1;
+        return new ExecResult(output, exitCode);
     }
 
     // --- Hilfsfunktionen -----------------------------------------------------------------

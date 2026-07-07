@@ -1,5 +1,6 @@
 package io.d4y.adapter.yaml;
 
+import io.d4y.TestFixtures;
 import io.d4y.config.D4yProperties;
 import io.d4y.domain.model.DesiredState;
 import org.junit.jupiter.api.Test;
@@ -14,10 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class YamlDesiredStateSourceTest {
 
     private static D4yProperties propsFor(Path dir) {
-        return new D4yProperties(
-                new D4yProperties.Docker("/var/run/docker.sock", ""),
-                new D4yProperties.DesiredState(dir.toString()),
-                new D4yProperties.Reconcile(15000));
+        return TestFixtures.props(dir.toString());
     }
 
     @Test

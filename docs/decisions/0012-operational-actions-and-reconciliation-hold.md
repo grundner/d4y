@@ -1,7 +1,8 @@
 # ADR-0012: Operative Aktionen und Reconciliation-Hold
 
-Status: Proposed
+Status: Accepted
 Datum: 2026-07-06
+Angenommen: 2026-07-07
 Betrifft: [operational-action](../domain/operational-action.md), [reconciliation-hold](../domain/reconciliation-hold.md), [reconciliation](../domain/reconciliation.md), [desired-vs-actual-state](../domain/desired-vs-actual-state.md), [ADR-0001](0001-git-as-single-source-of-truth.md), [ADR-0004](0004-nextjs-react-readonly-frontend.md), [ADR-0007](0007-continuous-reconciliation-self-healing.md)
 
 ## Kontext

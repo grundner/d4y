@@ -7,6 +7,7 @@ import io.d4y.domain.model.ObservedContainer;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -79,5 +80,23 @@ class ReconcilerTest {
 
         assertThat(plan.actions()).isEmpty();
         assertThat(plan.isInSync()).isTrue();
+    }
+
+    @Test
+    void skipsHeldDesiredApp() {
+        var plan = reconciler.plan(
+                new DesiredState(List.of(app("web", "nginx:1.27"))), List.of(), Set.of("web"));
+
+        assertThat(plan.actions()).singleElement().isInstanceOf(ReconcileAction.Noop.class);
+    }
+
+    @Test
+    void doesNotRemoveHeldUndeclaredContainer() {
+        var plan = reconciler.plan(
+                DesiredState.empty(),
+                List.of(container("c9", "orphan", "redis:7", true)),
+                Set.of("orphan"));
+
+        assertThat(plan.actions()).isEmpty();
     }
 }

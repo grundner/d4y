@@ -20,7 +20,8 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | [0009](0009-persistence-optional-backup-restore.md) | Persistenz über optionales Backup/Restore | Proposed |
 | [0010](0010-dns-ingress-service-discovery.md) | DNS, Ingress und Service-Discovery | Proposed |
 | [0011](0011-interim-local-desired-state-source.md) | Interim: lokale Desired-State-Quelle vor Git-Anbindung | Proposed |
-| [0012](0012-operational-actions-and-reconciliation-hold.md) | Operative Aktionen und Reconciliation-Hold | Proposed |
+| [0012](0012-operational-actions-and-reconciliation-hold.md) | Operative Aktionen und Reconciliation-Hold | Accepted |
+| [0013](0013-operational-actions-and-hold-api.md) | Operative-Aktionen- und Hold-API | Accepted |
 
 > **Accepted** ADRs sind bindend. **Proposed** ADRs sind Entwürfe und werden erst nach
 > expliziter Freigabe auf **Accepted** gesetzt (siehe [../standards/adr.md](../standards/adr.md)).

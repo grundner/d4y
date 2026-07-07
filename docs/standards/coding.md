@@ -25,7 +25,11 @@ Bezug: [ADR-0003](../decisions/0003-java21-spring-boot-backend.md)
 - Reconciliation-Loop für **Applications** (start/stop/replace, Drift-Bereinigung, Self-Healing).
 - Desired State aus lokaler YAML — **Interim** [ADR-0011](../decisions/0011-interim-local-desired-state-source.md),
   Git-Anbindung folgt.
-- Noch nicht umgesetzt: Volumes/Backup, Routes/DNS, Frontend, Single-Image, Bootstrap.
+- **Operative Aktionen & Hold** ([ADR-0013](../decisions/0013-operational-actions-and-hold-api.md)):
+  Restart/Stop/Logs/Details/exec/temp. Parameter, In-Memory-Hold (Reconciler-Skip, auto-expiring)
+  und In-Memory-Audit; `GET /api/status` um Hold-Infos erweitert. Akteur via `X-Actor`.
+- Noch nicht umgesetzt: Volumes/Backup, Routes/DNS (Backend), Single-Image, Bootstrap, Auth,
+  Secret-Masking; Frontend-Verdrahtung dieser Endpunkte.
 
 ## Frontend (Next.js / React)
 

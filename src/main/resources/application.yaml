@@ -15,6 +15,12 @@ d4y:
     path: ./desired
   reconcile:
     interval-ms: 15000
+  operations:
+    hold:
+      default-seconds: 900
+      max-seconds: 3600
+    logs:
+      default-tail: 200
 
 management:
   endpoints:

@@ -1,6 +1,8 @@
 package io.d4y.port;
 
+import io.d4y.domain.model.ContainerDetails;
 import io.d4y.domain.model.ContainerSpec;
+import io.d4y.domain.model.ExecResult;
 import io.d4y.domain.model.ImageRef;
 import io.d4y.domain.model.ObservedContainer;
 
@@ -25,4 +27,21 @@ public interface ContainerBackend {
 
     /** Stoppt und entfernt den Container mit der angegebenen ID. */
     void stopAndRemove(String containerId);
+
+    // --- Operative Aktionen (ADR-0013) ---------------------------------------------------
+
+    /** Startet den Container neu. */
+    void restart(String containerId);
+
+    /** Stoppt den Container, ohne ihn zu entfernen. */
+    void stop(String containerId);
+
+    /** Liefert die letzten {@code tail} Log-Zeilen (stdout+stderr). */
+    String logs(String containerId, int tail);
+
+    /** Liefert Details des Containers (inspect). */
+    ContainerDetails inspect(String containerId);
+
+    /** Führt ein Kommando im Container aus und liefert Ausgabe + Exit-Code. */
+    ExecResult exec(String containerId, List<String> cmd);
 }

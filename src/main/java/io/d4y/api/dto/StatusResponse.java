@@ -15,12 +15,18 @@ public record StatusResponse(String overall,
 
     /**
      * @param state IN_SYNC | MISSING | OUTDATED | STOPPED
+     * @param hold  aktiver Hold für diese App, oder {@code null}
      */
     public record AppStatus(String name,
                             String desiredImage,
                             String state,
                             boolean running,
-                            String containerId) {
+                            String containerId,
+                            HoldInfo hold) {
+    }
+
+    /** Aktiver Hold in der Statusanzeige. */
+    public record HoldInfo(String type, long remainingSeconds) {
     }
 
     public record ExtraContainer(String appName, String image, String containerId) {

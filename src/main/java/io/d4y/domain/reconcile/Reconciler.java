@@ -31,6 +31,14 @@ public class Reconciler {
      * </ul>
      */
     public ReconcilePlan plan(DesiredState desired, List<ObservedContainer> actual) {
+        return plan(desired, actual, Set.of());
+    }
+
+    /**
+     * Wie {@link #plan(DesiredState, List)}, überspringt aber Ziele mit aktivem
+     * Reconciliation-Hold: für sie wird nichts verändert (Noop). → ADR-0012
+     */
+    public ReconcilePlan plan(DesiredState desired, List<ObservedContainer> actual, Set<String> heldAppNames) {
         Map<String, ObservedContainer> byApp = actual.stream()
                 .collect(Collectors.toMap(ObservedContainer::appName, Function.identity(), (a, b) -> a));
 
@@ -39,6 +47,10 @@ public class Reconciler {
 
         for (Application app : desired.applications()) {
             desiredNames.add(app.name());
+            if (heldAppNames.contains(app.name())) {
+                actions.add(new ReconcileAction.Noop(app.name())); // gehalten
+                continue;
+            }
             ObservedContainer observed = byApp.get(app.name());
             if (observed == null) {
                 actions.add(new ReconcileAction.Start(app));
@@ -49,9 +61,10 @@ public class Reconciler {
             }
         }
 
-        // Verwaltete Container, die nicht (mehr) deklariert sind: Drift bereinigen.
+        // Verwaltete Container, die nicht (mehr) deklariert sind: Drift bereinigen —
+        // es sei denn, das Ziel wird gehalten.
         for (ObservedContainer observed : actual) {
-            if (!desiredNames.contains(observed.appName())) {
+            if (!desiredNames.contains(observed.appName()) && !heldAppNames.contains(observed.appName())) {
                 actions.add(new ReconcileAction.StopAndRemove(observed.appName(), observed.id()));
             }
         }

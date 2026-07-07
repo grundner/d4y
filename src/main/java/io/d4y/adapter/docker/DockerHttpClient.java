@@ -26,6 +26,13 @@ public class DockerHttpClient {
         }
     }
 
+    /** Antwort der Engine als Rohbytes (für multiplexte Streams: Logs/exec). */
+    public record ResponseBytes(int status, byte[] body) {
+        public boolean isSuccess() {
+            return status >= 200 && status < 300;
+        }
+    }
+
     private final HttpClient client;
     private final String baseUrl;
     private final Duration timeout = Duration.ofSeconds(120);
@@ -62,6 +69,34 @@ public class DockerHttpClient {
         return client.delete().uri(baseUrl + path)
                 .responseSingle(this::toResponse)
                 .block(timeout);
+    }
+
+    /** GET, das den Body als Rohbytes liefert (Logs). */
+    public ResponseBytes getBytes(String path) {
+        return client.get().uri(baseUrl + path)
+                .responseSingle(this::toResponseBytes)
+                .block(timeout);
+    }
+
+    /** POST mit JSON-Body, das den Body als Rohbytes liefert (exec-Start). */
+    public ResponseBytes postBytes(String path, String jsonBody) {
+        HttpClient.ResponseReceiver<?> receiver;
+        if (jsonBody == null) {
+            receiver = client.post().uri(baseUrl + path);
+        } else {
+            receiver = client
+                    .headers(h -> h.set("Content-Type", "application/json"))
+                    .post().uri(baseUrl + path)
+                    .send(ByteBufFlux.fromString(Mono.just(jsonBody)));
+        }
+        return receiver.responseSingle(this::toResponseBytes).block(timeout);
+    }
+
+    private Mono<ResponseBytes> toResponseBytes(reactor.netty.http.client.HttpClientResponse res,
+                                                reactor.netty.ByteBufMono content) {
+        return content.asByteArray()
+                .defaultIfEmpty(new byte[0])
+                .map(body -> new ResponseBytes(res.status().code(), body));
     }
 
     private Mono<Response> toResponse(reactor.netty.http.client.HttpClientResponse res,

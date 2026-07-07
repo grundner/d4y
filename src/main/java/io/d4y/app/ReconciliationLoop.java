@@ -2,6 +2,7 @@ package io.d4y.app;
 
 import io.d4y.domain.model.ContainerSpec;
 import io.d4y.domain.model.DesiredState;
+import io.d4y.domain.model.Hold;
 import io.d4y.domain.model.ObservedContainer;
 import io.d4y.domain.reconcile.ReconcileAction;
 import io.d4y.domain.reconcile.ReconcilePlan;
@@ -14,6 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Kontinuierlicher Reconciliation-Loop (ADR-0007): observe → diff → reconcile.
@@ -29,24 +31,36 @@ public class ReconciliationLoop {
     private final DesiredStateSource desiredStateSource;
     private final ContainerBackend backend;
     private final Reconciler reconciler;
+    private final HoldRegistry holdRegistry;
+    private final AuditLog auditLog;
 
     public ReconciliationLoop(DesiredStateSource desiredStateSource,
                               ContainerBackend backend,
-                              Reconciler reconciler) {
+                              Reconciler reconciler,
+                              HoldRegistry holdRegistry,
+                              AuditLog auditLog) {
         this.desiredStateSource = desiredStateSource;
         this.backend = backend;
         this.reconciler = reconciler;
+        this.holdRegistry = holdRegistry;
+        this.auditLog = auditLog;
     }
 
     @Scheduled(fixedDelayString = "${d4y.reconcile.interval-ms}")
     public void reconcile() {
         try {
+            // Abgelaufene Holds bereinigen und auditieren; danach kehren die Ziele zu GitOps zurück.
+            for (Hold expired : holdRegistry.purgeExpired()) {
+                auditLog.record("system", expired.appName(), "hold-expired", "OK", false, "abgelaufen");
+            }
+            Set<String> held = holdRegistry.heldAppNames();
+
             DesiredState desired = desiredStateSource.load();
             List<ObservedContainer> actual = backend.observe();
-            ReconcilePlan plan = reconciler.plan(desired, actual);
+            ReconcilePlan plan = reconciler.plan(desired, actual, held);
 
             if (plan.isInSync()) {
-                log.debug("In Sync — {} App(s), keine Änderung", desired.applications().size());
+                log.debug("In Sync — {} App(s), {} gehalten", desired.applications().size(), held.size());
                 return;
             }
             log.info("Drift erkannt — {} Aktion(en) werden ausgeführt", plan.changingActions().size());

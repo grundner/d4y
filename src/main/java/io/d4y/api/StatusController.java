@@ -3,8 +3,11 @@ package io.d4y.api;
 import io.d4y.api.dto.StatusResponse;
 import io.d4y.api.dto.StatusResponse.AppStatus;
 import io.d4y.api.dto.StatusResponse.ExtraContainer;
+import io.d4y.api.dto.StatusResponse.HoldInfo;
+import io.d4y.app.HoldRegistry;
 import io.d4y.domain.model.Application;
 import io.d4y.domain.model.DesiredState;
+import io.d4y.domain.model.Hold;
 import io.d4y.domain.model.ObservedContainer;
 import io.d4y.port.ContainerBackend;
 import io.d4y.port.DesiredStateSource;
@@ -30,10 +33,13 @@ public class StatusController {
 
     private final DesiredStateSource desiredStateSource;
     private final ContainerBackend backend;
+    private final HoldRegistry holdRegistry;
 
-    public StatusController(DesiredStateSource desiredStateSource, ContainerBackend backend) {
+    public StatusController(DesiredStateSource desiredStateSource, ContainerBackend backend,
+                           HoldRegistry holdRegistry) {
         this.desiredStateSource = desiredStateSource;
         this.backend = backend;
+        this.holdRegistry = holdRegistry;
     }
 
     @GetMapping("/status")
@@ -63,12 +69,17 @@ public class StatusController {
             if (!"IN_SYNC".equals(state)) {
                 drift = true;
             }
+            Hold hold = holdRegistry.get(app.name());
+            HoldInfo holdInfo = hold == null
+                    ? null
+                    : new HoldInfo(hold.type().name(), hold.remainingSeconds(holdRegistry.now()));
             apps.add(new AppStatus(
                     app.name(),
                     app.image().reference(),
                     state,
                     o != null && o.running(),
-                    o != null ? o.id() : null));
+                    o != null ? o.id() : null,
+                    holdInfo));
         }
 
         List<ExtraContainer> undeclared = new ArrayList<>();
