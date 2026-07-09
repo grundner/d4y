@@ -126,6 +126,9 @@ class DockerContainerBackendTest {
         assertThat(labels.path("traefik.enable").asText()).isEqualTo("true");
         assertThat(labels.path("traefik.http.routers.d4y-web-0.rule").asText())
                 .isEqualTo("Host(`web.example.com`)");
+        assertThat(labels.path("traefik.http.routers.d4y-web-0.entrypoints").asText())
+                .isEqualTo("websecure");
+        assertThat(labels.path("traefik.http.routers.d4y-web-0.tls").asText()).isEqualTo("true");
         assertThat(labels.path("traefik.http.services.d4y-web-0.loadbalancer.server.port").asText())
                 .isEqualTo("8080");
         // Ziel-Alias im d4y-Netz = App-Name.

@@ -385,7 +385,8 @@ function AppDetailInner() {
             </TableContainer>
             <Typography variant="body2" color="text.secondary">
               Deklarierter externer Ingress (Soll, aus <code>GET /api/status</code>). Der Reverse Proxy
-              (Traefik) wird aus diesen Routes konfiguriert; Deklaration nur über das Config-Repository (Git).
+              (Traefik) wird aus diesen Routes konfiguriert und terminiert TLS/HTTPS; Deklaration nur
+              über das Config-Repository (Git).
             </Typography>
           </>
         )

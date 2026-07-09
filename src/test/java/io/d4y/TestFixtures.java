@@ -2,6 +2,8 @@ package io.d4y;
 
 import io.d4y.config.D4yProperties;
 
+import java.util.Map;
+
 /** Gemeinsame Test-Hilfen. */
 public final class TestFixtures {
 
@@ -19,6 +21,9 @@ public final class TestFixtures {
                 new D4yProperties.Reconcile(15000),
                 new D4yProperties.Operations(
                         new D4yProperties.HoldConfig(900, 3600),
-                        new D4yProperties.LogsConfig(200)));
+                        new D4yProperties.LogsConfig(200)),
+                new D4yProperties.Ingress(true,
+                        new D4yProperties.Tls(
+                                new D4yProperties.Acme("", "http", "", "", Map.of()))));
     }
 }

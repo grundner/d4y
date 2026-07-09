@@ -3,6 +3,8 @@ package io.d4y.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
+import java.util.Map;
+
 /**
  * Zentrale Konfiguration von D4Y (Präfix {@code d4y}).
  *
@@ -14,7 +16,8 @@ public record D4yProperties(
         @DefaultValue Docker docker,
         @DefaultValue DesiredState desiredState,
         @DefaultValue Reconcile reconcile,
-        @DefaultValue Operations operations) {
+        @DefaultValue Operations operations,
+        @DefaultValue Ingress ingress) {
 
     /** Anbindung an die Docker-Engine (HTTP über Unix-Socket). */
     public record Docker(
@@ -41,5 +44,41 @@ public record D4yProperties(
     }
 
     public record LogsConfig(@DefaultValue("200") int defaultTail) {
+    }
+
+    /** Ingress/TLS-Konfiguration (ADR-0016/0017). */
+    public record Ingress(@DefaultValue("true") boolean httpsRedirect, @DefaultValue Tls tls) {
+    }
+
+    public record Tls(@DefaultValue Acme acme) {
+    }
+
+    /**
+     * ACME/Let's-Encrypt-Konfiguration. Aktiv, sobald {@code email} gesetzt ist; sonst nutzt Traefik
+     * sein self-signed Default-Zertifikat.
+     *
+     * @param challenge {@code http} oder {@code dns}
+     * @param dnsProvider Traefik-DNS-Provider-Name (nur bei {@code challenge=dns})
+     * @param env Zugangsdaten des DNS-Providers als Container-Env (z. B. {@code CF_DNS_API_TOKEN})
+     * @param caServer optionaler alternativer ACME-CA-Server (z. B. Staging)
+     */
+    public record Acme(@DefaultValue("") String email,
+                       @DefaultValue("http") String challenge,
+                       @DefaultValue("") String dnsProvider,
+                       @DefaultValue("") String caServer,
+                       Map<String, String> env) {
+
+        public Acme {
+            env = env == null ? Map.of() : Map.copyOf(env);
+        }
+
+        /** ACME ist aktiv, sobald eine E-Mail konfiguriert ist. */
+        public boolean enabled() {
+            return email != null && !email.isBlank();
+        }
+
+        public boolean dnsChallenge() {
+            return "dns".equalsIgnoreCase(challenge);
+        }
     }
 }

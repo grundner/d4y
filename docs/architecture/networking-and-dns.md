@@ -1,4 +1,4 @@
-# Architektur — Networking & DNS
+  # Architektur — Networking & DNS
 
 Status: Draft
 Bezug: [ADR-0010](../decisions/0010-dns-ingress-service-discovery.md),
@@ -76,8 +76,13 @@ dass die interne Namensauflösung besteht, die Reverse-Proxy-Konfiguration den d
 
 - **Externer Ingress via Traefik** ist umgesetzt ([ADR-0016](../decisions/0016-reverse-proxy-traefik-docker-labels.md)):
   Apps deklarieren Routes im [Desired-State-YAML](desired-state-yaml.md) (`routes: [{host, path, port}]`).
-  D4Y stellt einen verwalteten **Traefik**-Edge-Container (Docker-Provider, HTTP `:80`) sicher, hängt
-  alle verwalteten Container an ein gemeinsames `d4y`-Netz (Alias = App-Name) und rendert je Route
+  D4Y stellt einen verwalteten **Traefik**-Edge-Container (Docker-Provider) sicher, hängt alle
+  verwalteten Container an ein gemeinsames `d4y`-Netz (Alias = App-Name) und rendert je Route
   Traefik-Router/Service-Labels auf den App-Container. Routes sind Teil des Reconcile (Änderung ⇒ Replace).
-- **Noch offen:** **TLS/ACME**, die beiden **DNS-Modi** (managed/extern) und die explizite interne
-  **Service-Discovery** (das `d4y`-Netz legt die Grundlage) — jeweils eigene Ausbaustufe/ADR.
+- **HTTPS/TLS** ist umgesetzt ([ADR-0017](../decisions/0017-tls-https-ingress.md)): Entrypoint
+  `websecure :443` + optionaler HTTP→HTTPS-Redirect. **Default self-signed** (Traefik-Zertifikat),
+  **ACME opt-in** (`d4y.ingress.tls.acme.*`) mit **HTTP-01- oder DNS-01-Challenge** und persistiertem
+  Cert-Store.
+- **Noch offen:** die beiden **DNS-Modi** (managed/extern, automatische Record-Verwaltung) und die
+  explizite interne **Service-Discovery** (das `d4y`-Netz legt die Grundlage) — jeweils eigene
+  Ausbaustufe/ADR.

@@ -71,8 +71,9 @@ Jeder Eintrag ordnet einen **Hostnamen** (und ggf. Pfad) der App zu — externer
 > HTTP `:80`). D4Y rendert je Route Traefik-Router/Service-Labels auf den App-Container und hängt
 > alle verwalteten Container an ein gemeinsames `d4y`-Netz. Weil diese Labels beim Erstellen gebacken
 > werden, ist eine geänderte Route-Deklaration **Drift** und führt zu einem Container-**Replace**.
-> TLS und die DNS-Modi (managed/extern) folgen später — siehe
-> [networking-and-dns](networking-and-dns.md).
+> **HTTPS/TLS** ist aktiv ([ADR-0017](../decisions/0017-tls-https-ingress.md)): Routes werden auf
+> `websecure :443` mit TLS bedient (Default self-signed, ACME opt-in). Die DNS-Modi (managed/extern)
+> folgen später — siehe [networking-and-dns](networking-and-dns.md).
 
 ## Beispiel
 
@@ -142,10 +143,16 @@ Abgleich für ein Ziel vorübergehend aus (weder Replace noch StopAndRemove).
 
 ## Konfiguration
 
-| Schlüssel                   | Default     | Bedeutung |
-| --------------------------- | ----------- | --------- |
-| `d4y.desired-state.path`    | `./desired` | Verzeichnis der YAML-Dateien. |
-| `d4y.reconcile.interval-ms` | `15000`     | Intervall des Reconciliation-Loops in Millisekunden. |
+| Schlüssel                          | Default     | Bedeutung |
+| ---------------------------------- | ----------- | --------- |
+| `d4y.desired-state.path`           | `./desired` | Verzeichnis der YAML-Dateien. |
+| `d4y.reconcile.interval-ms`        | `15000`     | Intervall des Reconciliation-Loops in Millisekunden. |
+| `d4y.ingress.https-redirect`       | `true`      | HTTP→HTTPS-Redirect am Reverse Proxy. |
+| `d4y.ingress.tls.acme.email`       | *(leer)*    | Gesetzt ⇒ ACME/Let's-Encrypt aktiv; leer ⇒ self-signed Default-Zertifikat. |
+| `d4y.ingress.tls.acme.challenge`   | `http`      | ACME-Challenge: `http` oder `dns`. |
+| `d4y.ingress.tls.acme.dns-provider`| *(leer)*    | Traefik-DNS-Provider (nur bei `challenge=dns`). |
+| `d4y.ingress.tls.acme.env.*`       | *(leer)*    | Zugangsdaten des DNS-Providers als Traefik-Container-Env (Geheimnisse). |
+| `d4y.ingress.tls.acme.ca-server`   | *(leer)*    | Optionaler alternativer ACME-CA-Server (z. B. Staging). |
 
 ## Referenzen
 

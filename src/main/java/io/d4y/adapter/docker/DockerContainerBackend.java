@@ -105,17 +105,24 @@ public class DockerContainerBackend implements ContainerBackend {
             return;
         }
         labels.put("traefik.enable", "true");
+        String entrypoints = edgeProxy.routerEntrypoints();
+        String certResolver = edgeProxy.certResolver();
         String base = sanitize(spec.appName());
         int i = 0;
         for (Route r : spec.routes()) {
             String rn = "d4y-" + base + "-" + i;
+            String router = "traefik.http.routers." + rn + ".";
             String rule = "Host(`" + r.host() + "`)";
             if (!"/".equals(r.path())) {
                 rule += " && PathPrefix(`" + r.path() + "`)";
             }
-            labels.put("traefik.http.routers." + rn + ".rule", rule);
-            labels.put("traefik.http.routers." + rn + ".entrypoints", "web");
-            labels.put("traefik.http.routers." + rn + ".service", rn);
+            labels.put(router + "rule", rule);
+            labels.put(router + "entrypoints", entrypoints);
+            labels.put(router + "service", rn);
+            labels.put(router + "tls", "true");
+            if (certResolver != null) {
+                labels.put(router + "tls.certresolver", certResolver);
+            }
             labels.put("traefik.http.services." + rn + ".loadbalancer.server.port", String.valueOf(r.port()));
             i++;
         }
