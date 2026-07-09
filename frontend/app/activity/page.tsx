@@ -1,22 +1,28 @@
 "use client";
 
 import * as React from "react";
-import { Box, Chip, Paper, Stack, Typography } from "@mui/material";
+import { Alert, Box, Chip, Paper, Stack, Typography } from "@mui/material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
-import { ACTIVITY } from "@/lib/mockData";
+import { useD4y } from "@/lib/store";
+import { useActivity } from "@/lib/api";
+import { formatTimestamp } from "@/lib/format";
 
+// Dunkle, transluzente Akzent-BGs passend zur ADR-0015-Palette (Blau/Lila/Amber/Neutral).
 const TYPE_COLORS: Record<string, [string, string]> = {
-  inspect: ["#eeeeee", "#424242"],
-  restart: ["#e3f2fd", "#0b5cad"],
-  stop: ["#fff3e0", "#8a5200"],
-  "temp-param": ["#fff3e0", "#8a5200"],
-  "hold-set": ["#f3e5f5", "#6a1b9a"],
-  "hold-expired": ["#eceff1", "#546e7a"],
+  inspect: ["rgba(139,147,161,0.15)", "#c7cdd6"],
+  restart: ["rgba(77,184,255,0.16)", "#6ac4ff"],
+  stop: ["rgba(224,169,74,0.16)", "#e0a94a"],
+  "temp-param": ["rgba(224,169,74,0.16)", "#e0a94a"],
+  "hold-set": ["rgba(178,141,255,0.16)", "#c3a9ff"],
+  "hold-expired": ["rgba(139,147,161,0.12)", "#8b93a1"],
 };
 
 const FILTERS = ["Alle Apps", "Aktionstyp", "Zeitraum: 24 h"];
 
 export default function ActivityPage() {
+  const { refreshSignal } = useD4y();
+  const { data, error, loading } = useActivity(refreshSignal, 100);
+
   const columns: GridColDef[] = [
     { field: "time", headerName: "Zeitpunkt", width: 180, renderCell: (p) => <Box sx={{ fontFamily: "monospace", fontSize: 12, color: "text.secondary" }}>{p.row.time}</Box> },
     { field: "actor", headerName: "Akteur", flex: 1, minWidth: 150 },
@@ -26,7 +32,7 @@ export default function ActivityPage() {
       headerName: "Aktion",
       width: 150,
       renderCell: (p) => {
-        const c = TYPE_COLORS[p.row.type] ?? ["#eee", "#333"];
+        const c = TYPE_COLORS[p.row.type] ?? ["rgba(139,147,161,0.15)", "#c7cdd6"];
         return <Chip size="small" label={p.row.type} sx={{ bgcolor: c[0], color: c[1], fontWeight: 500, fontFamily: "monospace" }} />;
       },
     },
@@ -40,7 +46,7 @@ export default function ActivityPage() {
           <Chip
             size="small"
             label={p.row.result}
-            sx={ok ? { bgcolor: "#edf7ed", color: "#1e4620", fontWeight: 500 } : { bgcolor: "#fdeded", color: "#5f2120", fontWeight: 500 }}
+            sx={ok ? { bgcolor: "rgba(95,208,168,0.16)", color: "#5fd0a8", fontWeight: 500 } : { bgcolor: "rgba(244,119,107,0.16)", color: "#f4776b", fontWeight: 500 }}
           />
         );
       },
@@ -51,7 +57,7 @@ export default function ActivityPage() {
       width: 130,
       renderCell: (p) =>
         p.row.drift ? (
-          <Chip size="small" label="sanktioniert" sx={{ bgcolor: "#f3e5f5", color: "#6a1b9a", fontWeight: 500 }} />
+          <Chip size="small" label="sanktioniert" sx={{ bgcolor: "rgba(178,141,255,0.16)", color: "#c3a9ff", fontWeight: 500 }} />
         ) : (
           <Typography component="span" color="text.disabled">
             —
@@ -61,7 +67,16 @@ export default function ActivityPage() {
     { field: "hold", headerName: "Hold", flex: 1, minWidth: 140, renderCell: (p) => <Box sx={{ fontSize: 12.5, color: "text.secondary" }}>{p.row.hold}</Box> },
   ];
 
-  const rows = ACTIVITY.map((a, i) => ({ id: i, ...a }));
+  const rows = (data ?? []).map((a, i) => ({
+    id: i,
+    time: formatTimestamp(a.time),
+    actor: a.actor,
+    app: a.app,
+    type: a.action,
+    result: a.result,
+    drift: a.drift,
+    hold: a.hold ?? "—",
+  }));
 
   return (
     <>
@@ -72,6 +87,12 @@ export default function ActivityPage() {
         Vollständiges Audit-Log aller operativen Aktionen · sanktionierte, temporäre Drift ist markiert
       </Typography>
 
+      {error && !data && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
         {FILTERS.map((f) => (
           <Chip key={f} variant="outlined" label={f} onClick={() => {}} deleteIcon={<span>▾</span>} onDelete={() => {}} />
@@ -81,6 +102,7 @@ export default function ActivityPage() {
       <Paper variant="outlined">
         <DataGrid
           autoHeight
+          loading={loading && !data}
           rows={rows}
           columns={columns}
           disableRowSelectionOnClick

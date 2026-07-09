@@ -35,6 +35,22 @@ ob für die App ein [Backup](backup.md) konfiguriert ist:
 - Seine Durability ergibt sich aus dem [Backup](backup.md).
 - Nur die Deklaration, nicht der Inhalt, ist Teil des [Soll-Zustands](desired-vs-actual-state.md).
 
+## Beispiel (Interim-YAML)
+
+Im lokalen Desired-State (`desired/*.yaml`, [ADR-0011](../decisions/0011-interim-local-desired-state-source.md))
+deklariert eine App ihre **Named Volumes** als Liste aus `name` (engine-verwaltetes Volume) und
+`path` (Mount-Pfad im Container). Bind Mounts sind hier bewusst **nicht** vorgesehen.
+
+```yaml
+name: nginx
+image: nginx:1.27-alpine
+volumes:
+  - name: html
+    path: /usr/share/nginx/html
+  - name: cache
+    path: /var/cache/nginx
+```
+
 ## Regeln
 
 - Ein Volume wird **deklarativ** im Config-Repository beschrieben; nur die Deklaration ist Teil

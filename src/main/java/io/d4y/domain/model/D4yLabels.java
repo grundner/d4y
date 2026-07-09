@@ -16,6 +16,9 @@ public final class D4yLabels {
     /** Image-Referenz, mit der der Container erzeugt wurde (für Drift-Vergleich). */
     public static final String IMAGE = "d4y.image";
 
+    /** Kodierte Named-Volume-Deklaration, mit der der Container erzeugt wurde (für Drift-Vergleich). */
+    public static final String VOLUMES = "d4y.volumes";
+
     private D4yLabels() {
     }
 }

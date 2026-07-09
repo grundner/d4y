@@ -14,21 +14,37 @@ public record StatusResponse(String overall,
                              List<ExtraContainer> undeclared) {
 
     /**
-     * @param state IN_SYNC | MISSING | OUTDATED | STOPPED
-     * @param hold  aktiver Hold für diese App, oder {@code null}
+     * @param state   IN_SYNC | MISSING | OUTDATED | STOPPED
+     * @param hold    aktiver Hold für diese App, oder {@code null}
+     * @param volumes deklarierte Named Volumes der App (Soll)
      */
     public record AppStatus(String name,
                             String desiredImage,
                             String state,
                             boolean running,
                             String containerId,
-                            HoldInfo hold) {
+                            HoldInfo hold,
+                            List<VolumeInfo> volumes) {
     }
 
     /** Aktiver Hold in der Statusanzeige. */
     public record HoldInfo(String type, long remainingSeconds) {
     }
 
-    public record ExtraContainer(String appName, String image, String containerId) {
+    /**
+     * Ein nicht deklarierter, aber von D4Y verwalteter Container (Drift).
+     *
+     * @param running {@code true}, wenn der Container läuft
+     * @param volumes Named Volumes, mit denen der Container erzeugt wurde (Ist)
+     */
+    public record ExtraContainer(String appName,
+                                 String image,
+                                 String containerId,
+                                 boolean running,
+                                 List<VolumeInfo> volumes) {
+    }
+
+    /** Deklaration eines Named Volumes: Name + Mount-Pfad im Container. */
+    public record VolumeInfo(String name, String path) {
     }
 }

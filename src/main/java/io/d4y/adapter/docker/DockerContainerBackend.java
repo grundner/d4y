@@ -8,6 +8,7 @@ import io.d4y.domain.model.D4yLabels;
 import io.d4y.domain.model.ExecResult;
 import io.d4y.domain.model.ImageRef;
 import io.d4y.domain.model.ObservedContainer;
+import io.d4y.domain.model.VolumeMapping;
 import io.d4y.port.ContainerBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,8 @@ public class DockerContainerBackend implements ContainerBackend {
             }
             String imageRef = labels.getOrDefault(D4yLabels.IMAGE, node.path("Image").asText("unknown"));
             boolean running = "running".equals(node.path("State").asText());
-            result.add(new ObservedContainer(node.path("Id").asText(), appName, ImageRef.of(imageRef), running));
+            List<VolumeMapping> volumes = VolumeMapping.decode(labels.getOrDefault(D4yLabels.VOLUMES, ""));
+            result.add(new ObservedContainer(node.path("Id").asText(), appName, ImageRef.of(imageRef), running, volumes));
         }
         return result;
     }
@@ -70,6 +72,25 @@ public class DockerContainerBackend implements ContainerBackend {
         log.info("Image sichergestellt: {}", image);
     }
 
+    /**
+     * Stellt ein von D4Y verwaltetes Named Volume sicher (idempotent: gleicher Name → vorhandenes
+     * Volume). Der Engine-Volume-Name wird als {@code d4y_<app>_<name>} vergeben.
+     *
+     * @return der vergebene Engine-Volume-Name
+     */
+    private String ensureVolume(String appName, VolumeMapping volume) {
+        String volName = "d4y_" + appName + "_" + volume.name();
+        Map<String, Object> labels = new LinkedHashMap<>();
+        labels.put(D4yLabels.MANAGED, "true");
+        labels.put(D4yLabels.APP, appName);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("Name", volName);
+        body.put("Labels", labels);
+        DockerHttpClient.Response res = docker.post("/volumes/create", toJson(body));
+        require(res, "Volume sicherstellen: " + volName);
+        return volName;
+    }
+
     @Override
     public String run(ContainerSpec spec) {
         ensureImage(spec.image());
@@ -78,11 +99,26 @@ public class DockerContainerBackend implements ContainerBackend {
         labels.put(D4yLabels.MANAGED, "true");
         labels.put(D4yLabels.APP, spec.appName());
         labels.put(D4yLabels.IMAGE, spec.image().reference());
+        labels.put(D4yLabels.VOLUMES, VolumeMapping.encode(spec.volumes()));
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("Image", spec.image().reference());
         body.put("Labels", labels);
         if (!spec.env().isEmpty()) {
             body.put("Env", spec.env().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).toList());
+        }
+        if (!spec.volumes().isEmpty()) {
+            List<Map<String, Object>> mounts = new ArrayList<>();
+            for (VolumeMapping v : spec.volumes()) {
+                String volName = ensureVolume(spec.appName(), v);
+                Map<String, Object> mount = new LinkedHashMap<>();
+                mount.put("Type", "volume");
+                mount.put("Source", volName);
+                mount.put("Target", v.path());
+                mounts.add(mount);
+            }
+            Map<String, Object> hostConfig = new LinkedHashMap<>();
+            hostConfig.put("Mounts", mounts);
+            body.put("HostConfig", hostConfig);
         }
 
         String createPath = "/containers/create?name=" + enc("d4y_" + spec.appName());

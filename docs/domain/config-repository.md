@@ -18,6 +18,9 @@ Das Repository enthält den gewünschten Zustand — nicht die Schritte, um ihn 
 
 - Liefert den **Soll-Zustand** für den [Desired-vs-Actual-State](desired-vs-actual-state.md).
 - Wird vom [Reconciliation](reconciliation.md)-Prozess kontinuierlich gelesen.
+- Die konkrete **YAML-Struktur** des Sollzustands (interim aus einem lokalen Verzeichnis,
+  [ADR-0011](../decisions/0011-interim-local-desired-state-source.md)) ist in
+  [architecture/desired-state-yaml](../architecture/desired-state-yaml.md) beschrieben.
 
 ## Regeln
 

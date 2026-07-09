@@ -3,8 +3,10 @@
 > **Zweck:** Wiederverwendbarer Prompt, um das D4Y-Frontend zu designen. Sekundäres Arbeitsdokument
 > (kein Implementierungstreiber). Verbindlich bleiben die Domänendokumente und **Accepted** ADRs.
 > Entwurfsvorgaben: Next.js (App Router) + React + **Material UI**, `@mui/x-data-grid` für Tabellen,
-> **nur helles Theme / MUI-Default**, möglichst Standard-Komponenten, zusätzliches CSS nur wo nötig.
+> **Dark-Theme mit definierter Custom-Palette** (Blau/Lila, siehe [ADR-0015](../decisions/0015-frontend-dark-blue-theme.md)),
+> möglichst Standard-Komponenten (Anpassung auf Theme-Ebene), zusätzliches CSS nur wo nötig.
 > Bezug: [status-view](status-view.md), [ADR-0004](../decisions/0004-nextjs-react-readonly-frontend.md),
+> [ADR-0015](../decisions/0015-frontend-dark-blue-theme.md),
 > [operational-action](../domain/operational-action.md), [reconciliation-hold](../domain/reconciliation-hold.md).
 
 ---
@@ -31,7 +33,11 @@ Erlaubt sind nur **operative Aktionen**, die den Sollzustand nicht ändern; dere
 - **Next.js App Router** + React (Client-Components wo nötig, `use client`).
 - **Material UI (@mui/material)** als Basis. MUI-Integration für Next.js via
   `@mui/material-nextjs` (`AppRouterCacheProvider`), `CssBaseline`, `ThemeProvider`.
-- **Nur helles Theme, MUI-Default-Palette.** `createTheme` minimal halten, keine eigene Palette.
+- **Dark-Theme mit definierter Custom-Palette** (Blau/Lila) gemäß
+  [ADR-0015](../decisions/0015-frontend-dark-blue-theme.md). Anpassung auf **Theme-Ebene** über
+  `createTheme` (Modus `dark`, Palette, Schriften); die MUI-Komponentenstruktur bleibt.
+- **Schriften:** IBM Plex Sans (UI/Body), IBM Plex Mono (Code/Terminal), Spectral (optional für
+  Headings), via `next/font/google`.
 - **Möglichst Standard-Komponenten.** Zusätzliches CSS **nur** wo explizit nötig — bevorzugt über
   das `sx`-Prop für Layout; **keine** separaten CSS-Dateien, außer für explizit als „Custom
   Component" gekennzeichnete Elemente (z. B. Log-/Terminal-Viewer).
@@ -78,13 +84,18 @@ Diese Seite an die reale API binden — Antwortschema von `GET /api/status`:
 {
   "overall": "IN_SYNC | DRIFT",
   "applications": [
-    {"name":"nginx","desiredImage":"nginx:1.27-alpine","state":"IN_SYNC|MISSING|STOPPED|OUTDATED","running":true,"containerId":"df24…"}
+    {"name":"nginx","desiredImage":"nginx:1.27-alpine","state":"IN_SYNC|MISSING|STOPPED|OUTDATED","running":true,"containerId":"df24…",
+     "volumes":[{"name":"html","path":"/usr/share/nginx/html"}]}
   ],
-  "undeclared": [ {"appName":"…","image":"…","containerId":"…"} ]
+  "undeclared": [ {"appName":"…","image":"…","containerId":"…","running":true,"volumes":[{"name":"…","path":"/…"}]} ]
 }
 ```
+`applications[].volumes` sind die **deklarierten** Named Volumes (Soll); `undeclared[].volumes` die
+tatsächlich am Container gemounteten (Ist).
+
 Zusätzlich einen Abschnitt/Tab **„Undeclared Container"** (verwaltete Container ohne Deklaration =
-Drift), mit Aktion „Entfernen" (operativ).
+Drift), mit Aktion „Entfernen" (operativ). Zeile → eigene **Detailansicht** des nicht deklarierten
+Containers (Image, Container-ID, Läuft, gemountete Volumes; read-only).
 
 #### 3. Application-Detail (`/applications/[name]`)
 Header: Name, Status-Chip, Desired Image, Service-Discovery-Name (interner stabiler Name).
@@ -141,7 +152,9 @@ Chips (`<Chip>`) für App-States; Gesamtstatus als prominentes Badge/Alert.
 ### Ausdrücklich NICHT (Non-Goals)
 - Keine UI zum Erstellen/Bearbeiten/Löschen von Sollzustand (Apps, Images, Routes, Volumes,
   Backup-Policy) — das ist Git-only.
-- Kein dunkles Theme, keine Custom-Palette, kein Fremd-Styling-Framework.
+- Kein Fremd-Styling-Framework, kein Layout-Neubau außerhalb der MUI-Komponentenstruktur. Das
+  Dark-Theme und die Custom-Palette (Blau/Lila) sind ausdrücklich gewollt —
+  siehe [ADR-0015](../decisions/0015-frontend-dark-blue-theme.md).
 - Kein unbefristeter Hold (Hold ist immer zeitlich begrenzt).
 
 ### Deliverable

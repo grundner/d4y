@@ -4,11 +4,13 @@ import io.d4y.api.dto.StatusResponse;
 import io.d4y.api.dto.StatusResponse.AppStatus;
 import io.d4y.api.dto.StatusResponse.ExtraContainer;
 import io.d4y.api.dto.StatusResponse.HoldInfo;
+import io.d4y.api.dto.StatusResponse.VolumeInfo;
 import io.d4y.app.HoldRegistry;
 import io.d4y.domain.model.Application;
 import io.d4y.domain.model.DesiredState;
 import io.d4y.domain.model.Hold;
 import io.d4y.domain.model.ObservedContainer;
+import io.d4y.domain.model.VolumeMapping;
 import io.d4y.port.ContainerBackend;
 import io.d4y.port.DesiredStateSource;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -79,17 +81,23 @@ public class StatusController {
                     state,
                     o != null && o.running(),
                     o != null ? o.id() : null,
-                    holdInfo));
+                    holdInfo,
+                    toVolumeInfos(app.volumes())));
         }
 
         List<ExtraContainer> undeclared = new ArrayList<>();
         for (ObservedContainer o : actual) {
             if (!desiredNames.contains(o.appName())) {
-                undeclared.add(new ExtraContainer(o.appName(), o.image().reference(), o.id()));
+                undeclared.add(new ExtraContainer(
+                        o.appName(), o.image().reference(), o.id(), o.running(), toVolumeInfos(o.volumes())));
                 drift = true;
             }
         }
 
         return new StatusResponse(drift ? "DRIFT" : "IN_SYNC", apps, undeclared);
+    }
+
+    private static List<VolumeInfo> toVolumeInfos(List<VolumeMapping> volumes) {
+        return volumes.stream().map(v -> new VolumeInfo(v.name(), v.path())).toList();
     }
 }

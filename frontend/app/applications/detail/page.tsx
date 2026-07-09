@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Box,
@@ -40,7 +41,7 @@ import LogsPanel from "@/components/LogsPanel";
 import ExecPanel from "@/components/ExecPanel";
 import { useD4y } from "@/lib/store";
 import { useStatus } from "@/lib/api";
-import { formatCountdown, holdTypeLabel } from "@/lib/format";
+import { formatCountdown, holdEnumLabel } from "@/lib/format";
 import {
   restartApp,
   stopApp,
@@ -77,10 +78,10 @@ function PendingNote({ text }: { text: string }) {
   );
 }
 
-export default function AppDetailPage() {
+function AppDetailInner() {
   const router = useRouter();
-  const params = useParams();
-  const name = decodeURIComponent(String(params.name));
+  const searchParams = useSearchParams();
+  const name = decodeURIComponent(searchParams.get("name") ?? "");
   const { showSnack, refreshSignal, manualRefresh } = useD4y();
 
   const [localReload, setLocalReload] = React.useState(0);
@@ -100,6 +101,7 @@ export default function AppDetailPage() {
   const cur = data?.applications.find((a) => a.name === name) ?? null;
 
   React.useEffect(() => {
+    if (!name) return;
     let alive = true;
     inspectApp(name)
       .then((d) => alive && setDetails(d))
@@ -235,14 +237,14 @@ export default function AppDetailPage() {
         <Alert
           icon={<ScheduleIcon />}
           severity="info"
-          sx={{ mb: 2, bgcolor: "#f3e5f5", color: "#4a148c" }}
+          sx={{ mb: 2, bgcolor: "rgba(178,141,255,0.15)", color: "#c3a9ff", "& .MuiAlert-icon": { color: "#b28dff" } }}
           action={
             <Button color="secondary" size="small" onClick={doRelease}>
               Freigeben
             </Button>
           }
         >
-          Gehalten (Hold) · {holdTypeLabel(hold.type.toLowerCase().replace("_", "-"))} aktiv — läuft automatisch ab in{" "}
+          Gehalten (Hold) · {holdEnumLabel(hold.type)} aktiv — läuft automatisch ab in{" "}
           <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
             {rem}
           </Box>
@@ -274,7 +276,7 @@ export default function AppDetailPage() {
                 <TableRow>
                   <TableCell sx={{ color: "text.secondary" }}>Image</TableCell>
                   <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{cur.desiredImage}</TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, ...(imageMismatch ? { bgcolor: "#fff4e5", color: "#8a5200" } : {}) }}>
+                  <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, ...(imageMismatch ? { bgcolor: "rgba(224,169,74,0.16)", color: "#e0a94a" } : {}) }}>
                     {actualImage}
                     {imageMismatch ? " · weicht ab" : ""}
                   </TableCell>
@@ -331,7 +333,38 @@ export default function AppDetailPage() {
       {tab === "logs" && <LogsPanel name={name} />}
       {tab === "exec" && <ExecPanel name={name} />}
       {tab === "volumes" && (
-        <PendingNote text="Volumes, Persistenz und Backup-Policy sind noch nicht Teil des API und folgen mit der Backend-Ausbaustufe. Deklaration erfolgt über das Config-Repository (Git)." />
+        cur.volumes.length === 0 ? (
+          <EmptyState text="Diese App deklariert keine Volumes. Named Volumes werden im Config-Repository (Git) deklariert." />
+        ) : (
+          <>
+            <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Mount-Pfad (Container)</TableCell>
+                    <TableCell>Typ</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {cur.volumes.map((v) => (
+                    <TableRow key={v.name}>
+                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{v.name}</TableCell>
+                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{v.path}</TableCell>
+                      <TableCell>
+                        <Chip size="small" label="Named" sx={{ bgcolor: "rgba(77,184,255,0.16)", color: "#6ac4ff", fontWeight: 500 }} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Typography variant="body2" color="text.secondary">
+              Deklarierte Named Volumes (Soll, aus <code>GET /api/status</code>). Deklaration nur über das
+              Config-Repository (Git); der Inhalt ist nicht Teil des Sollzustands.
+            </Typography>
+          </>
+        )
       )}
       {tab === "routes" && (
         <PendingNote text="Routes und DNS-Zuordnungen sind noch nicht Teil des API und folgen mit der Backend-Ausbaustufe. Deklaration erfolgt über das Config-Repository (Git)." />
@@ -341,11 +374,11 @@ export default function AppDetailPage() {
           <Card variant="outlined" sx={{ borderColor: "rgba(156,39,176,0.35)" }}>
             <CardContent>
               <Stack direction="row" spacing={2.25} alignItems="center">
-                <Box sx={{ width: 70, height: 70, borderRadius: "50%", bgcolor: "#f3e5f5", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
-                  <ScheduleIcon sx={{ color: "#9c27b0", fontSize: 34 }} />
+                <Box sx={{ width: 70, height: 70, borderRadius: "50%", bgcolor: "rgba(178,141,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
+                  <ScheduleIcon sx={{ color: "#b28dff", fontSize: 34 }} />
                 </Box>
                 <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontWeight: 500 }}>{holdTypeLabel(hold.type.toLowerCase().replace("_", "-"))} · aktiv</Typography>
+                  <Typography sx={{ fontWeight: 500 }}>{holdEnumLabel(hold.type)} · aktiv</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     Verbleibend{" "}
                     <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600, color: "secondary.main", fontSize: 16 }}>
@@ -414,5 +447,14 @@ export default function AppDetailPage() {
         </DialogActions>
       </Dialog>
     </>
+  );
+}
+
+export default function AppDetailPage() {
+  // useSearchParams erfordert im statischen Export eine Suspense-Grenze.
+  return (
+    <Suspense fallback={<Skeleton variant="rounded" height={200} />}>
+      <AppDetailInner />
+    </Suspense>
   );
 }

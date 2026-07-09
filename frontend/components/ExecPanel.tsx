@@ -28,13 +28,13 @@ export default function ExecPanel({ name }: { name: string }) {
   return (
     <Box sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid rgba(0,0,0,0.18)" }}>
       <Stack direction="row" alignItems="center" spacing={1.25} sx={{ bgcolor: "#2d2d2d", color: "#ddd", px: 1.75, py: 1, fontSize: 13 }}>
-        <TerminalIcon sx={{ color: "#4caf50", fontSize: 18 }} />
+        <TerminalIcon sx={{ color: "#5fd0a8", fontSize: 18 }} />
         <span>exec / Shell · Debugging-Sitzung</span>
         <Box sx={{ flex: 1 }} />
         <Box sx={{ fontFamily: "monospace", color: "#aaa", fontSize: 12 }}>{name}.d4y.internal</Box>
       </Stack>
       <Stack direction="row" spacing={1} sx={{ bgcolor: "#252525", p: 1.25 }} alignItems="center">
-        <Box sx={{ color: "#4caf50", fontFamily: "monospace", fontSize: 13 }}>root@{name}:/app#</Box>
+        <Box sx={{ color: "#5fd0a8", fontFamily: "monospace", fontSize: 13 }}>root@{name}:/app#</Box>
         <TextField
           value={cmd}
           onChange={(e) => setCmd(e.target.value)}
@@ -56,7 +56,7 @@ export default function ExecPanel({ name }: { name: string }) {
         ) : result ? (
           <>
             <Box sx={{ color: "#9e9e9e" }}>{result.output || "(keine Ausgabe)"}</Box>
-            <Box sx={{ color: result.exitCode === 0 ? "#4caf50" : "#f48771", mt: 1 }}>exit {result.exitCode}</Box>
+            <Box sx={{ color: result.exitCode === 0 ? "#5fd0a8" : "#f48771", mt: 1 }}>exit {result.exitCode}</Box>
           </>
         ) : (
           <Box sx={{ color: "#666" }}>Kommando eingeben und „Ausführen"…</Box>

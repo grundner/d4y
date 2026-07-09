@@ -55,7 +55,7 @@ export default function InfrastructurePage() {
             <CardContent>
               <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <StorageIcon sx={{ color: "#546e7a" }} />
+                  <StorageIcon sx={{ color: "#8b93a1" }} />
                   <Typography sx={{ fontWeight: 500 }}>{n.id}</Typography>
                 </Stack>
                 <StatusChip status={n.status} />
@@ -66,7 +66,7 @@ export default function InfrastructurePage() {
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 {n.containers} verwaltete Container
               </Typography>
-              <Chip size="small" label="austauschbar · zustandslos" sx={{ mt: 1.5, bgcolor: "#eceff1", color: "#546e7a" }} />
+              <Chip size="small" label="austauschbar · zustandslos" sx={{ mt: 1.5, bgcolor: "rgba(139,147,161,0.15)", color: "#c7cdd6" }} />
             </CardContent>
           </Card>
         ))}
@@ -78,13 +78,13 @@ export default function InfrastructurePage() {
           <Card key={r.name} variant="outlined">
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <Inventory2Icon sx={{ color: "#546e7a" }} />
+                <Inventory2Icon sx={{ color: "#8b93a1" }} />
                 <Typography sx={{ fontFamily: "monospace", fontSize: 13 }}>{r.name}</Typography>
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1.25 }}>
                 {r.note}
               </Typography>
-              <Chip size="small" label="vertrauenswürdig" sx={{ mt: 1.5, bgcolor: "#edf7ed", color: "#1e4620" }} />
+              <Chip size="small" label="vertrauenswürdig" sx={{ mt: 1.5, bgcolor: "rgba(95,208,168,0.16)", color: "#5fd0a8" }} />
             </CardContent>
           </Card>
         ))}
@@ -96,13 +96,13 @@ export default function InfrastructurePage() {
           <Card key={b.name} variant="outlined">
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <CloudIcon sx={{ color: "#546e7a" }} />
+                <CloudIcon sx={{ color: "#8b93a1" }} />
                 <Typography sx={{ fontFamily: "monospace", fontSize: 13 }}>{b.name}</Typography>
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1.25 }}>
                 {b.kind}
               </Typography>
-              <Chip size="small" label={b.status} sx={{ mt: 1.5, bgcolor: "#edf7ed", color: "#1e4620" }} />
+              <Chip size="small" label={b.status} sx={{ mt: 1.5, bgcolor: "rgba(95,208,168,0.16)", color: "#5fd0a8" }} />
             </CardContent>
           </Card>
         ))}
@@ -115,7 +115,7 @@ export default function InfrastructurePage() {
             <CardContent>
               <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <DnsIcon sx={{ color: "#546e7a" }} />
+                  <DnsIcon sx={{ color: "#8b93a1" }} />
                   <Typography sx={{ fontWeight: 500, fontSize: 14 }}>{d.name}</Typography>
                 </Stack>
                 <Chip
@@ -123,8 +123,8 @@ export default function InfrastructurePage() {
                   label={d.mode}
                   sx={
                     d.mode === "managed"
-                      ? { bgcolor: "#e5f6fd", color: "#01579b", fontWeight: 500 }
-                      : { bgcolor: "#eceff1", color: "#546e7a", fontWeight: 500 }
+                      ? { bgcolor: "rgba(77,184,255,0.16)", color: "#6ac4ff", fontWeight: 500 }
+                      : { bgcolor: "rgba(139,147,161,0.15)", color: "#c7cdd6", fontWeight: 500 }
                   }
                 />
               </Stack>

@@ -45,14 +45,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>
-      <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          zIndex: (t) => t.zIndex.drawer + 1,
+          bgcolor: "background.paper",
+          color: "text.primary",
+          borderBottom: 1,
+          borderColor: "divider",
+        }}
+      >
         <Toolbar>
           <Box
             sx={{
               width: 36,
               height: 36,
               borderRadius: 2,
-              bgcolor: "rgba(255,255,255,0.18)",
+              bgcolor: "primary.main",
+              color: "primary.contrastText",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -89,7 +100,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               inputProps={{ "aria-label": "Auto-Refresh umschalten" }}
             />
           </Box>
-          <Divider orientation="vertical" flexItem sx={{ borderColor: "rgba(255,255,255,0.28)", mx: 1 }} />
+          <Divider orientation="vertical" flexItem sx={{ borderColor: "divider", mx: 1 }} />
           <Tooltip title="Konto (Platzhalter)">
             <IconButton color="inherit">
               <AccountCircleIcon />
@@ -143,7 +154,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </Box>
       </Drawer>
 
-      <Box component="main" sx={{ flexGrow: 1, height: "100vh", overflow: "auto", bgcolor: "grey.50" }}>
+      <Box component="main" sx={{ flexGrow: 1, height: "100vh", overflow: "auto", bgcolor: "background.default" }}>
         <Toolbar />
         <Box sx={{ height: 4 }}>{refreshing && <LinearProgress />}</Box>
         <Container maxWidth="lg" sx={{ py: 3, pb: 8 }}>

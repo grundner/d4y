@@ -4,6 +4,9 @@ Status: Proposed
 Datum: 2026-07-06
 Betrifft: [config-repository](../domain/config-repository.md), [desired-vs-actual-state](../domain/desired-vs-actual-state.md), [ADR-0001](0001-git-as-single-source-of-truth.md)
 
+> Format und Verarbeitung der lokalen YAML-Dateien sind in
+> [architecture/desired-state-yaml](../architecture/desired-state-yaml.md) beschrieben.
+
 ## Kontext
 
 [ADR-0001](0001-git-as-single-source-of-truth.md) (Accepted) legt fest, dass der Sollzustand
@@ -20,8 +23,10 @@ begehen — siehe [ADR-Prozess](../standards/adr.md)).
 
 Für die erste Ausbaustufe liest D4Y den Sollzustand aus einem **lokalen Verzeichnis**
 (`desired/`, YAML). Dieses Verzeichnis wird konzeptionell als lokaler Arbeitsstand des
-Config-Repositories behandelt. Das deklarative Modell (Apps, Images) bleibt unverändert; nur
-die **Bezugsquelle** ist interimistisch lokal statt aus Git geklont.
+Config-Repositories behandelt. Nur die **Bezugsquelle** ist interimistisch lokal statt aus Git
+geklont; das deklarative Modell wächst regulär mit den Domänenschritten. Neben `name`/`image`
+trägt das Interim-YAML inzwischen auch **Volume-Deklarationen** (Named Volumes, `name` + Mount-`path`)
+gemäß [volume](../domain/volume.md) und [ADR-0009](0009-persistence-optional-backup-restore.md).
 
 **Sunset:** Diese Entscheidung wird zurückgezogen (`Superseded`), sobald die Git-Anbindung
 (Clone/Pull des Config-Repositories) implementiert ist. Ab dann gilt wieder ausschließlich

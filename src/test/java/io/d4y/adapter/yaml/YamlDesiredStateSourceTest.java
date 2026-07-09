@@ -42,6 +42,42 @@ class YamlDesiredStateSourceTest {
     }
 
     @Test
+    void parsesNamedVolumes(@TempDir Path dir) throws IOException {
+        Files.writeString(dir.resolve("web.yaml"),
+                "name: web\nimage: nginx:1.27-alpine\nvolumes:\n"
+                        + "  - name: html\n    path: /usr/share/nginx/html\n"
+                        + "  - name: cache\n    path: /var/cache/nginx\n");
+
+        DesiredState state = new YamlDesiredStateSource(propsFor(dir)).load();
+
+        assertThat(state.applications()).singleElement()
+                .satisfies(a -> assertThat(a.volumes())
+                        .extracting(v -> v.name() + "@" + v.path())
+                        .containsExactly("html@/usr/share/nginx/html", "cache@/var/cache/nginx"));
+    }
+
+    @Test
+    void appWithoutVolumesHasEmptyList(@TempDir Path dir) throws IOException {
+        Files.writeString(dir.resolve("web.yaml"), "name: web\nimage: nginx:1.27-alpine\n");
+
+        DesiredState state = new YamlDesiredStateSource(propsFor(dir)).load();
+
+        assertThat(state.applications()).singleElement()
+                .satisfies(a -> assertThat(a.volumes()).isEmpty());
+    }
+
+    @Test
+    void rejectsVolumeWithoutPath(@TempDir Path dir) throws IOException {
+        Files.writeString(dir.resolve("web.yaml"),
+                "name: web\nimage: nginx:1.27-alpine\nvolumes:\n  - name: html\n");
+
+        YamlDesiredStateSource source = new YamlDesiredStateSource(propsFor(dir));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(source::load)
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void missingDirectoryYieldsEmptyState(@TempDir Path dir) {
         DesiredState state = new YamlDesiredStateSource(propsFor(dir.resolve("does-not-exist"))).load();
 

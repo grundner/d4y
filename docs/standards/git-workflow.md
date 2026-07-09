@@ -8,8 +8,12 @@ nachvollziehbarer Git-Verlauf ist entsprechend wichtig.
 
 ## Branches
 
-- `main` — stets konsistent; Doku und (später) Code widersprechen sich nicht.
-- Arbeits-Branches pro Thema/Änderung; keine direkten unklaren Sammelcommits auf `main`.
+- **Niemals direkt auf `main` arbeiten.** Jede Änderung entsteht auf einem eigenen
+  **Feature-Branch** und erreicht `main` ausschließlich über Review/Merge (siehe [Reviews](#reviews)).
+- `main` bleibt dadurch **stets konsistent** — Doku und (später) Code widersprechen sich nicht.
+- **Ein Branch pro Thema/Änderung.** Namenskonvention: `feature/<thema>` für Funktionalität,
+  `docs/<thema>` für reine Dokumentation (kebab-case, z. B. `feature/volume-mapping`).
+- Keine unklaren Sammelcommits auf `main`.
 
 ## Commits
 

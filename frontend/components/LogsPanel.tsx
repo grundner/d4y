@@ -46,7 +46,7 @@ export default function LogsPanel({ name }: { name: string }) {
           </Stack>
         ) : (
           <Stack direction="row" spacing={0.7} alignItems="center">
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#4caf50", animation: "d4ypulse 1.4s infinite" }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#5fd0a8", animation: "d4ypulse 1.4s infinite" }} />
             <span>Live</span>
           </Stack>
         )}

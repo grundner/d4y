@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Suspense } from "react";
 import NextLink from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Box,
@@ -34,6 +34,7 @@ import { useStatus } from "@/lib/api";
 import type { AppState } from "@/lib/types";
 
 function ApplicationsInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { showSnack, refreshSignal } = useD4y();
   const { data, error, loading, reload } = useStatus(refreshSignal);
@@ -50,7 +51,7 @@ function ApplicationsInner() {
       flex: 1,
       minWidth: 140,
       renderCell: (p) => (
-        <MuiLink component={NextLink} href={`/applications/${p.row.name}`} sx={{ fontWeight: 500 }}>
+        <MuiLink component={NextLink} href={`/applications/detail?name=${encodeURIComponent(p.row.name)}`} sx={{ fontWeight: 500 }}>
           {p.row.name}
         </MuiLink>
       ),
@@ -186,7 +187,12 @@ function ApplicationsInner() {
                 </TableHead>
                 <TableBody>
                   {undeclared.map((u) => (
-                    <TableRow key={u.containerId}>
+                    <TableRow
+                      key={u.containerId}
+                      hover
+                      onClick={() => router.push(`/applications/undeclared?id=${encodeURIComponent(u.containerId)}`)}
+                      sx={{ cursor: "pointer" }}
+                    >
                       <TableCell sx={{ color: "text.secondary" }}>{u.appName || "—"}</TableCell>
                       <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{u.image}</TableCell>
                       <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, color: "text.secondary" }}>
@@ -198,9 +204,10 @@ function ApplicationsInner() {
                           color="error"
                           variant="outlined"
                           startIcon={<DeleteOutlineIcon />}
-                          onClick={() =>
-                            showSnack(`Nicht deklarierter Container ${u.image} entfernt (operative Aktion).`)
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            showSnack(`Nicht deklarierter Container ${u.image} entfernt (operative Aktion).`);
+                          }}
                         >
                           Entfernen
                         </Button>

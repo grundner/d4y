@@ -21,9 +21,9 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import StatusChip from "@/components/StatusChip";
 import { useD4y } from "@/lib/store";
-import { useStatus } from "@/lib/api";
-import { ACTIVITY } from "@/lib/mockData";
-import { formatCountdown, holdTypeLabel } from "@/lib/format";
+import { useStatus, useHolds, useActivity } from "@/lib/api";
+import { releaseHold } from "@/lib/actions";
+import { formatCountdown, holdEnumLabel, formatClock } from "@/lib/format";
 import type { AppState } from "@/lib/types";
 
 function StatCard({ label, value, color }: { label: string; value: React.ReactNode; color: string }) {
@@ -44,25 +44,39 @@ const ACTION_SUMMARY: Record<string, string> = {
   stop: "Stop",
   "temp-param": "Temp. Parameter",
   inspect: "Inspect",
+  exec: "exec",
   "hold-set": "Hold gesetzt",
+  "hold-released": "Hold freigegeben",
   "hold-expired": "Hold abgelaufen",
 };
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { apps: mockApps, remaining, releaseHold, refreshSignal } = useD4y();
+  const { showSnack, refreshSignal, manualRefresh } = useD4y();
   const { data, error, loading, reload } = useStatus(refreshSignal);
+  const { data: holds } = useHolds(refreshSignal);
+  const { data: activity } = useActivity(refreshSignal, 5);
 
   const apps = data?.applications ?? [];
   const undeclared = data?.undeclared ?? [];
   const count = (s: AppState) => apps.filter((a) => a.state === s).length;
 
-  // Holds und Aktivität stammen aus der operativen/Audit-Ebene (noch nicht im /api/status).
-  const activeHolds = mockApps.filter((a) => a.hold);
-  const feed = ACTIVITY.slice(0, 5).map((a) => {
+  // Holds (GET /api/holds) und Aktivität (GET /api/activity) — operative/Audit-Ebene.
+  const activeHolds = holds ?? [];
+  const feed = (activity ?? []).map((a) => {
     const who = a.actor === "system" ? "system" : a.actor.split("@")[0];
-    return { clock: a.time.slice(11), summary: `${ACTION_SUMMARY[a.type] ?? a.type} · ${a.app} · ${who}` };
+    return { clock: formatClock(a.time), summary: `${ACTION_SUMMARY[a.action] ?? a.action} · ${a.app} · ${who}` };
   });
+
+  async function doRelease(app: string) {
+    try {
+      await releaseHold(app);
+      showSnack(`Hold für ${app} freigegeben — D4Y reconciled den Sollzustand.`);
+      manualRefresh();
+    } catch (e: any) {
+      showSnack("Fehler: " + (e?.message || e));
+    }
+  }
 
   const attention = apps
     .filter((a) => a.state !== "IN_SYNC")
@@ -136,7 +150,7 @@ export default function DashboardPage() {
           <Divider />
           <List disablePadding>
             {attention.map((a) => (
-              <ListItemButton key={a.name} onClick={() => router.push(`/applications/${a.name}`)} sx={{ gap: 1.5 }}>
+              <ListItemButton key={a.name} onClick={() => router.push(`/applications/detail?name=${encodeURIComponent(a.name)}`)} sx={{ gap: 1.5 }}>
                 <StatusChip status={a.state} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{ fontWeight: 500 }}>{a.name}</Typography>
@@ -180,18 +194,18 @@ export default function DashboardPage() {
               </Typography>
             ) : (
               activeHolds.map((a) => (
-                <React.Fragment key={a.name}>
+                <React.Fragment key={a.app}>
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ p: 2 }}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 500 }}>{a.name}</Typography>
+                      <Typography sx={{ fontWeight: 500 }}>{a.app}</Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {holdTypeLabel(a.hold!.type)} · Rest{" "}
+                        {holdEnumLabel(a.type)} · Rest{" "}
                         <Box component="span" sx={{ fontFamily: "monospace", color: "secondary.main", fontWeight: 500 }}>
-                          {formatCountdown(remaining(a.name))}
+                          {formatCountdown(a.remainingSeconds)}
                         </Box>
                       </Typography>
                     </Box>
-                    <Button size="small" color="secondary" variant="outlined" onClick={() => releaseHold(a.name)}>
+                    <Button size="small" color="secondary" variant="outlined" onClick={() => doRelease(a.app)}>
                       Freigeben
                     </Button>
                   </Stack>
@@ -220,8 +234,8 @@ export default function DashboardPage() {
 
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
         Kennzahlen, Gesamtstatus und „Braucht Aufmerksamkeit&quot; sind live aus{" "}
-        <code>GET /api/status</code>. Aktive Holds und Aktivität stammen aus der operativen/Audit-Ebene und folgen mit
-        den entsprechenden Backend-Ausbaustufen.
+        <code>GET /api/status</code>, aktive Holds aus <code>GET /api/holds</code> und die Aktivität aus{" "}
+        <code>GET /api/activity</code>.
       </Typography>
     </>
   );

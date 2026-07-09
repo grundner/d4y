@@ -36,7 +36,7 @@ export default function ConfigPage() {
         <Typography variant="h4" sx={{ fontWeight: 400 }}>
           Config-Repository
         </Typography>
-        <Chip size="small" icon={<LockOutlinedIcon />} label="READ-ONLY" sx={{ bgcolor: "#eceff1", color: "#546e7a", fontWeight: 500 }} />
+        <Chip size="small" icon={<LockOutlinedIcon />} label="READ-ONLY" sx={{ bgcolor: "rgba(139,147,161,0.15)", color: "#c7cdd6", fontWeight: 500 }} />
       </Stack>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, mb: 2.5 }}>
         Quelle der Wahrheit für den deklarativen Sollzustand
@@ -81,9 +81,9 @@ export default function ConfigPage() {
               {OBJECTS.map((o, i) => (
                 <Stack key={i} direction="row" spacing={1} alignItems="center" sx={{ py: 0.5, pl: o.indent ? 2.75 : 0, color: o.indent ? "text.secondary" : "text.primary" }}>
                   {o.icon === "folder" ? (
-                    <FolderIcon sx={{ fontSize: 18, color: "#f9a825" }} />
+                    <FolderIcon sx={{ fontSize: 18, color: "#e0a94a" }} />
                   ) : (
-                    <InsertDriveFileIcon sx={{ fontSize: 16, color: "#607d8b" }} />
+                    <InsertDriveFileIcon sx={{ fontSize: 16, color: "#8b93a1" }} />
                   )}
                   <span>{o.text}</span>
                 </Stack>

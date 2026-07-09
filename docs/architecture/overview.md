@@ -65,7 +65,7 @@ reproduzierbar, **Daten** über Backups aus dem Backup-Store. Analog wird die Na
 
 | Schicht | Verantwortung | Referenz |
 | --- | --- | --- |
-| Git-Config-Repo | Deklarativer Sollzustand | [config-repository](../domain/config-repository.md), [ADR-0001](../decisions/0001-git-as-single-source-of-truth.md) |
+| Git-Config-Repo | Deklarativer Sollzustand (YAML) | [config-repository](../domain/config-repository.md), [desired-state-yaml](desired-state-yaml.md), [ADR-0001](../decisions/0001-git-as-single-source-of-truth.md) |
 | Backend | Reconciliation, Zustandsverwaltung, API | [ADR-0003](../decisions/0003-java21-spring-boot-backend.md) |
 | Frontend | Read-only Status & Visualisierung | [ADR-0004](../decisions/0004-nextjs-react-readonly-frontend.md), [status-view](../ui/status-view.md) |
 | Container-Backend-Abstraktion | Engine-neutrale Steuerung | [container-backend-abstraction](container-backend-abstraction.md), [ADR-0005](../decisions/0005-container-backend-abstraction-docker-first.md) |
@@ -85,9 +85,14 @@ reproduzierbar, **Daten** über Backups aus dem Backup-Store. Analog wird die Na
   laufenden Ist-Zustand der Engine. → [server](../domain/server.md)
 - **Auslieferung als Single-Image.** Backend und Frontend liegen in der ersten Ausbaustufe in
   einem Image. → [ADR-0006](../decisions/0006-single-container-image-backend-frontend.md)
+- **Frontend als statischer Export vom Backend ausgeliefert.** Die UI wird als statischer
+  Next.js-Export gebaut und vom Backend als statische Ressourcen auf demselben Port wie `/api`
+  ausgeliefert — same-origin, kein Node zur Laufzeit, kein CORS.
+  → [ADR-0014](../decisions/0014-frontend-static-export-served-by-backend.md)
 
 ## Vertiefende Dokumente
 
+- [desired-state-yaml.md](desired-state-yaml.md)
 - [container-backend-abstraction.md](container-backend-abstraction.md)
 - [reconciliation-loop.md](reconciliation-loop.md)
 - [bootstrap.md](bootstrap.md)
