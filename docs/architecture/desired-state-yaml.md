@@ -34,6 +34,7 @@ solcher Objekte. Beide Formen sind gleichwertig; die Aufteilung auf Dateien ist 
 | `name`    | ja      | String        | Name der [Application](../domain/application.md); darf nicht leer sein. Der Container heißt `d4y_<name>`. |
 | `image`   | ja      | String        | Unveränderliche Image-Referenz `repository:tag` ([ADR-0002](../decisions/0002-immutable-images-no-build-on-target.md)); darf nicht leer sein. |
 | `volumes` | nein    | Liste Objekte | Deklarierte **Named Volumes** der App (siehe unten). Fehlt das Feld, hat die App keine Volumes. |
+| `routes`  | nein    | Liste Objekte | Deklarierter **externer Ingress** (Hostname → App, siehe unten). Fehlt das Feld, hat die App keine Routes. |
 
 ### `volumes[]` — Named Volumes
 
@@ -54,6 +55,21 @@ Regeln:
 - Nur die **Deklaration** ist Teil des Sollzustands, **nicht** der Volume-**Inhalt**
   ([desired-vs-actual-state](../domain/desired-vs-actual-state.md)).
 
+### `routes[]` — externer Ingress
+
+Jeder Eintrag ordnet einen **Hostnamen** (und ggf. Pfad) der App zu — externer Ingress
+([route](../domain/route.md), [ADR-0010](../decisions/0010-dns-ingress-service-discovery.md)).
+
+| Feld   | Pflicht | Typ    | Bedeutung |
+| ------ | ------- | ------ | --------- |
+| `host` | ja      | String | Hostname, unter dem die App erreichbar sein soll (z. B. `web.example.com`); ohne Schema/Slash. |
+| `path` | nein    | String | Pfad-Präfix; muss mit `/` beginnen. Default `/`. |
+
+> **Umsetzungsstand:** Routes sind derzeit **rein deklarativ und sichtbar** (Anzeige im Frontend,
+> Ausgabe über `GET /api/status`). Das Ableiten und Anwenden einer **Reverse-Proxy-Konfiguration**
+> folgt in einer späteren Ausbaustufe (eigene ADR) — siehe
+> [networking-and-dns](networking-and-dns.md). Routes lösen daher **keinen** Container-Replace aus.
+
 ## Beispiel
 
 Einzelne App mit zwei Named Volumes (`desired/nginx.yaml`):
@@ -66,6 +82,10 @@ volumes:
     path: /usr/share/nginx/html
   - name: cache
     path: /var/cache/nginx
+routes:
+  - host: nginx.example.com
+  - host: api.example.com
+    path: /v1
 ```
 
 Mehrere Apps in einer Datei (Listen-Form):

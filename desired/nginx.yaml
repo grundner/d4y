@@ -7,3 +7,7 @@ volumes:
     path: /usr/share/nginx/html
   - name: cache
     path: /var/cache/nginx
+routes:
+  - host: nginx.example.com
+  - host: api.example.com
+    path: /v1

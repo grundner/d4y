@@ -14,6 +14,11 @@ export interface StatusVolume {
   path: string;
 }
 
+export interface StatusRoute {
+  host: string;
+  path: string;
+}
+
 export interface StatusApp {
   name: string;
   desiredImage: string;
@@ -22,6 +27,7 @@ export interface StatusApp {
   containerId: string | null;
   hold?: StatusHold | null;
   volumes: StatusVolume[];
+  routes: StatusRoute[];
 }
 
 export interface StatusUndeclared {

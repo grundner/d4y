@@ -4,12 +4,14 @@ import io.d4y.api.dto.StatusResponse;
 import io.d4y.api.dto.StatusResponse.AppStatus;
 import io.d4y.api.dto.StatusResponse.ExtraContainer;
 import io.d4y.api.dto.StatusResponse.HoldInfo;
+import io.d4y.api.dto.StatusResponse.RouteInfo;
 import io.d4y.api.dto.StatusResponse.VolumeInfo;
 import io.d4y.app.HoldRegistry;
 import io.d4y.domain.model.Application;
 import io.d4y.domain.model.DesiredState;
 import io.d4y.domain.model.Hold;
 import io.d4y.domain.model.ObservedContainer;
+import io.d4y.domain.model.Route;
 import io.d4y.domain.model.VolumeMapping;
 import io.d4y.port.ContainerBackend;
 import io.d4y.port.DesiredStateSource;
@@ -82,7 +84,8 @@ public class StatusController {
                     o != null && o.running(),
                     o != null ? o.id() : null,
                     holdInfo,
-                    toVolumeInfos(app.volumes())));
+                    toVolumeInfos(app.volumes()),
+                    toRouteInfos(app.routes())));
         }
 
         List<ExtraContainer> undeclared = new ArrayList<>();
@@ -99,5 +102,9 @@ public class StatusController {
 
     private static List<VolumeInfo> toVolumeInfos(List<VolumeMapping> volumes) {
         return volumes.stream().map(v -> new VolumeInfo(v.name(), v.path())).toList();
+    }
+
+    private static List<RouteInfo> toRouteInfos(List<Route> routes) {
+        return routes.stream().map(r -> new RouteInfo(r.host(), r.path())).toList();
     }
 }

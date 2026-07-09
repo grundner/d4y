@@ -35,7 +35,6 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import StopIcon from "@mui/icons-material/Stop";
 import TuneIcon from "@mui/icons-material/Tune";
 import ScheduleIcon from "@mui/icons-material/Schedule";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import StatusChip from "@/components/StatusChip";
 import LogsPanel from "@/components/LogsPanel";
 import ExecPanel from "@/components/ExecPanel";
@@ -70,13 +69,6 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
-function PendingNote({ text }: { text: string }) {
-  return (
-    <Alert severity="info" icon={<LockOutlinedIcon />}>
-      {text}
-    </Alert>
-  );
-}
 
 function AppDetailInner() {
   const router = useRouter();
@@ -367,7 +359,34 @@ function AppDetailInner() {
         )
       )}
       {tab === "routes" && (
-        <PendingNote text="Routes und DNS-Zuordnungen sind noch nicht Teil des API und folgen mit der Backend-Ausbaustufe. Deklaration erfolgt über das Config-Repository (Git)." />
+        cur.routes.length === 0 ? (
+          <EmptyState text="Diese App deklariert keine Routes. Externer Ingress (Hostname → App) wird im Config-Repository (Git) deklariert." />
+        ) : (
+          <>
+            <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Hostname</TableCell>
+                    <TableCell>Pfad</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {cur.routes.map((r) => (
+                    <TableRow key={`${r.host}${r.path}`}>
+                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{r.host}</TableCell>
+                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{r.path}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Typography variant="body2" color="text.secondary">
+              Deklarierter externer Ingress (Soll, aus <code>GET /api/status</code>). Die Reverse-Proxy-
+              Anbindung folgt in einer späteren Ausbaustufe; Deklaration nur über das Config-Repository (Git).
+            </Typography>
+          </>
+        )
       )}
       {tab === "hold" && (
         hold ? (

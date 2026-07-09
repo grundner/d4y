@@ -17,6 +17,7 @@ public record StatusResponse(String overall,
      * @param state   IN_SYNC | MISSING | OUTDATED | STOPPED
      * @param hold    aktiver Hold für diese App, oder {@code null}
      * @param volumes deklarierte Named Volumes der App (Soll)
+     * @param routes  deklarierte Routes (externer Ingress, Soll)
      */
     public record AppStatus(String name,
                             String desiredImage,
@@ -24,7 +25,8 @@ public record StatusResponse(String overall,
                             boolean running,
                             String containerId,
                             HoldInfo hold,
-                            List<VolumeInfo> volumes) {
+                            List<VolumeInfo> volumes,
+                            List<RouteInfo> routes) {
     }
 
     /** Aktiver Hold in der Statusanzeige. */
@@ -46,5 +48,9 @@ public record StatusResponse(String overall,
 
     /** Deklaration eines Named Volumes: Name + Mount-Pfad im Container. */
     public record VolumeInfo(String name, String path) {
+    }
+
+    /** Deklaration einer Route: Hostname (+ Pfad) für externen Ingress. */
+    public record RouteInfo(String host, String path) {
     }
 }

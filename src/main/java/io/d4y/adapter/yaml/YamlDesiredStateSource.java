@@ -7,6 +7,7 @@ import io.d4y.config.D4yProperties;
 import io.d4y.domain.model.Application;
 import io.d4y.domain.model.DesiredState;
 import io.d4y.domain.model.ImageRef;
+import io.d4y.domain.model.Route;
 import io.d4y.domain.model.VolumeMapping;
 import io.d4y.port.DesiredStateSource;
 import org.slf4j.Logger;
@@ -78,7 +79,28 @@ public class YamlDesiredStateSource implements DesiredStateSource {
         if (name == null || image == null || name.asText().isBlank() || image.asText().isBlank()) {
             throw new IllegalArgumentException("Datei " + file + ": 'name' und 'image' sind erforderlich");
         }
-        return new Application(name.asText(), ImageRef.of(image.asText()), toVolumes(node, file));
+        return new Application(name.asText(), ImageRef.of(image.asText()),
+                toVolumes(node, file), toRoutes(node, file));
+    }
+
+    private List<Route> toRoutes(JsonNode node, Path file) {
+        JsonNode routes = node.get("routes");
+        if (routes == null || routes.isNull()) {
+            return List.of();
+        }
+        if (!routes.isArray()) {
+            throw new IllegalArgumentException("Datei " + file + ": 'routes' muss eine Liste sein");
+        }
+        List<Route> result = new ArrayList<>();
+        for (JsonNode r : routes) {
+            JsonNode host = r.get("host");
+            if (host == null || host.asText().isBlank()) {
+                throw new IllegalArgumentException("Datei " + file + ": jede Route braucht 'host'");
+            }
+            JsonNode path = r.get("path");
+            result.add(new Route(host.asText(), path == null ? null : path.asText()));
+        }
+        return result;
     }
 
     private List<VolumeMapping> toVolumes(JsonNode node, Path file) {

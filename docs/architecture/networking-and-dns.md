@@ -71,3 +71,12 @@ dass die interne Namensauflösung besteht, die Reverse-Proxy-Konfiguration den d
 
 > Konkrete Wahl von Reverse Proxy, Overlay-/Netzwerktechnik, DNS-Protokollen und Provider-APIs
 > sind **Implementierungsentscheidungen** und werden bei der Umsetzung per ADR festgelegt.
+
+## Umsetzungsstand
+
+- **Routes: Deklaration + Visualisierung** ist umgesetzt — Apps deklarieren Routes im
+  [Desired-State-YAML](desired-state-yaml.md) (`routes: [{host, path}]`), sie werden über
+  `GET /api/status` ausgeliefert und im Frontend angezeigt (Applications-Spalte + Detail-Tab).
+- **Noch offen:** Ableiten/Anwenden der **Reverse-Proxy-Konfiguration**, interne Service-Discovery
+  und die beiden **DNS-Modi** (managed/extern) — jeweils eigene Ausbaustufe mit eigener ADR (u. a.
+  Wahl des Reverse Proxy). Routes lösen daher aktuell keinen Reconcile-/Container-Effekt aus.

@@ -90,6 +90,21 @@ function ApplicationsInner() {
         ),
     },
     {
+      field: "routes",
+      headerName: "Routes",
+      flex: 1,
+      minWidth: 160,
+      sortable: false,
+      renderCell: (p) =>
+        p.row.routes && p.row.routes.length > 0 ? (
+          <Box sx={{ fontFamily: "monospace", fontSize: 12.5 }}>
+            {p.row.routes.map((r: { host: string }) => r.host).join(", ")}
+          </Box>
+        ) : (
+          <Box component="span" sx={{ color: "text.disabled" }}>—</Box>
+        ),
+    },
+    {
       field: "containerId",
       headerName: "Container-ID",
       flex: 1,
@@ -222,7 +237,7 @@ function ApplicationsInner() {
       )}
 
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
-        Route(s), Backup-Policy und Hold sind noch nicht Teil von <code>GET /api/status</code> und folgen mit den
+        Routes werden read-only angezeigt; die Reverse-Proxy-Anbindung sowie Backup-Policy folgen mit den
         entsprechenden Backend-Ausbaustufen.
       </Typography>
     </>

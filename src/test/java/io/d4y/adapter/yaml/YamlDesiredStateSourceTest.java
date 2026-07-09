@@ -67,6 +67,32 @@ class YamlDesiredStateSourceTest {
     }
 
     @Test
+    void parsesRoutes(@TempDir Path dir) throws IOException {
+        Files.writeString(dir.resolve("web.yaml"),
+                "name: web\nimage: nginx:1.27-alpine\nroutes:\n"
+                        + "  - host: web.example.com\n"
+                        + "  - host: api.example.com\n    path: /v1\n");
+
+        DesiredState state = new YamlDesiredStateSource(propsFor(dir)).load();
+
+        assertThat(state.applications()).singleElement()
+                .satisfies(a -> assertThat(a.routes())
+                        .extracting(r -> r.host() + r.path())
+                        .containsExactly("web.example.com/", "api.example.com/v1"));
+    }
+
+    @Test
+    void rejectsRouteWithoutHost(@TempDir Path dir) throws IOException {
+        Files.writeString(dir.resolve("web.yaml"),
+                "name: web\nimage: nginx:1.27-alpine\nroutes:\n  - path: /v1\n");
+
+        YamlDesiredStateSource source = new YamlDesiredStateSource(propsFor(dir));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(source::load)
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void rejectsVolumeWithoutPath(@TempDir Path dir) throws IOException {
         Files.writeString(dir.resolve("web.yaml"),
                 "name: web\nimage: nginx:1.27-alpine\nvolumes:\n  - name: html\n");
