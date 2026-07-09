@@ -82,6 +82,7 @@ public class Reconciler {
         return observed.running()
                 && observed.image().equals(app.image())
                 && VolumeMapping.encode(app.volumes()).equals(VolumeMapping.encode(observed.volumes()))
-                && Route.encode(app.routes()).equals(Route.encode(observed.routes()));
+                && Route.encode(app.routes()).equals(Route.encode(observed.routes()))
+                && app.env().equals(observed.env());
     }
 }

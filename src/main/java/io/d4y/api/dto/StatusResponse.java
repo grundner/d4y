@@ -19,6 +19,7 @@ public record StatusResponse(String overall,
      * @param hold    aktiver Hold für diese App, oder {@code null}
      * @param volumes deklarierte Named Volumes der App (Soll)
      * @param routes  deklarierte Routes (externer Ingress, Soll)
+     * @param envKeys Schlüssel der deklarierten Umgebungsvariablen (ohne Werte — Geheimnisschutz)
      */
     public record AppStatus(String name,
                             String serviceName,
@@ -28,7 +29,8 @@ public record StatusResponse(String overall,
                             String containerId,
                             HoldInfo hold,
                             List<VolumeInfo> volumes,
-                            List<RouteInfo> routes) {
+                            List<RouteInfo> routes,
+                            List<String> envKeys) {
     }
 
     /** Aktiver Hold in der Statusanzeige. */

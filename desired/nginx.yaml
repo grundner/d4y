@@ -11,3 +11,6 @@ routes:
   - host: nginx.example.com
   - host: api.example.com
     path: /v1
+env:
+  LOG_LEVEL: info
+  TZ: Europe/Berlin

@@ -9,6 +9,7 @@ import io.d4y.domain.model.VolumeMapping;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -96,6 +97,18 @@ class ReconcilerTest {
                 List.of(new Route("web.example.com", "/", 80)));
         ObservedContainer observed = new ObservedContainer("c1", "web", ImageRef.of("nginx:1.27"), true,
                 List.of(), List.of(new Route("web.example.com", "/", 8080)));
+
+        var plan = reconciler.plan(new DesiredState(List.of(desired)), List.of(observed));
+
+        assertThat(plan.actions()).singleElement().isInstanceOf(ReconcileAction.Replace.class);
+    }
+
+    @Test
+    void replacesOnEnvChange() {
+        Application desired = new Application("web", ImageRef.of("nginx:1.27"), List.of(), List.of(),
+                Map.of("LOG_LEVEL", "debug"));
+        ObservedContainer observed = new ObservedContainer("c1", "web", ImageRef.of("nginx:1.27"), true,
+                List.of(), List.of(), Map.of("LOG_LEVEL", "info"));
 
         var plan = reconciler.plan(new DesiredState(List.of(desired)), List.of(observed));
 

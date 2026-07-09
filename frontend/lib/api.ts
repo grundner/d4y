@@ -30,6 +30,8 @@ export interface StatusApp {
   hold?: StatusHold | null;
   volumes: StatusVolume[];
   routes: StatusRoute[];
+  /** Schlüssel der deklarierten Umgebungsvariablen (ohne Werte). */
+  envKeys: string[];
 }
 
 export interface StatusUndeclared {

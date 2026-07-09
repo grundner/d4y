@@ -20,7 +20,9 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -93,7 +95,20 @@ public class YamlDesiredStateSource implements DesiredStateSource {
             throw new IllegalArgumentException("Datei " + file + ": 'name' und 'image' sind erforderlich");
         }
         return new Application(name.asText(), ImageRef.of(image.asText()),
-                toVolumes(node, file), toRoutes(node, file));
+                toVolumes(node, file), toRoutes(node, file), toEnv(node, file));
+    }
+
+    private Map<String, String> toEnv(JsonNode node, Path file) {
+        JsonNode env = node.get("env");
+        if (env == null || env.isNull()) {
+            return Map.of();
+        }
+        if (!env.isObject()) {
+            throw new IllegalArgumentException("Datei " + file + ": 'env' muss eine Map (Key/Value) sein");
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        env.fields().forEachRemaining(e -> result.put(e.getKey(), e.getValue().asText()));
+        return result;
     }
 
     private List<Route> toRoutes(JsonNode node, Path file) {

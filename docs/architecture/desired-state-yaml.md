@@ -38,6 +38,7 @@ solcher Objekte. Beide Formen sind gleichwertig; die Aufteilung auf Dateien ist 
 | `image`   | ja      | String        | Unveränderliche Image-Referenz `repository:tag` ([ADR-0002](../decisions/0002-immutable-images-no-build-on-target.md)); darf nicht leer sein. |
 | `volumes` | nein    | Liste Objekte | Deklarierte **Named Volumes** der App (siehe unten). Fehlt das Feld, hat die App keine Volumes. |
 | `routes`  | nein    | Liste Objekte | Deklarierter **externer Ingress** (Hostname → App, siehe unten). Fehlt das Feld, hat die App keine Routes. |
+| `env`     | nein    | Map           | Deklarierte **Umgebungsvariablen** (Key→Value), die dem Container gesetzt werden. Teil des Sollzustands (Änderung ⇒ Replace). |
 
 ### `volumes[]` — Named Volumes
 
@@ -95,7 +96,16 @@ routes:
   - host: api.example.com
     path: /v1
     port: 8080
+env:
+  LOG_LEVEL: info
+  TZ: Europe/Berlin
 ```
+
+> **env & operative Overrides:** Das deklarierte `env` ist Sollzustand. Die operative Aktion
+> *„Temporäre Parameter"* ([operational-actions](operational-actions.md)) legt darüber einen
+> **transienten Override** (unter einem zeitlich begrenzten Hold); nach Ablauf des Holds kehrt der
+> Reconcile zum deklarierten `env` zurück. Werte können Geheimnisse enthalten und werden in
+> API/UI **nicht** ausgegeben (nur Schlüssel) — [privacy-rules](../rules/privacy-rules.md).
 
 Mehrere Apps in einer Datei (Listen-Form):
 

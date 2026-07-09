@@ -88,7 +88,8 @@ public class StatusController {
                     o != null ? o.id() : null,
                     holdInfo,
                     toVolumeInfos(app.volumes()),
-                    toRouteInfos(app.routes())));
+                    toRouteInfos(app.routes()),
+                    app.env().keySet().stream().sorted().toList()));
         }
 
         List<ExtraContainer> undeclared = new ArrayList<>();

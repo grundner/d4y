@@ -67,6 +67,17 @@ class YamlDesiredStateSourceTest {
     }
 
     @Test
+    void parsesEnv(@TempDir Path dir) throws IOException {
+        Files.writeString(dir.resolve("web.yaml"),
+                "name: web\nimage: nginx:1.27-alpine\nenv:\n  LOG_LEVEL: debug\n  PORT: \"8080\"\n");
+
+        DesiredState state = new YamlDesiredStateSource(propsFor(dir)).load();
+
+        assertThat(state.applications()).singleElement().satisfies(a ->
+                assertThat(a.env()).containsEntry("LOG_LEVEL", "debug").containsEntry("PORT", "8080"));
+    }
+
+    @Test
     void parsesRoutes(@TempDir Path dir) throws IOException {
         Files.writeString(dir.resolve("web.yaml"),
                 "name: web\nimage: nginx:1.27-alpine\nroutes:\n"

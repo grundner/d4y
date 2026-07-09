@@ -1,5 +1,6 @@
 package io.d4y.domain.model;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,12 +30,20 @@ public record ContainerSpec(String appName, ImageRef image, Map<String, String> 
     }
 
     public static ContainerSpec forApplication(Application application) {
-        return new ContainerSpec(application.name(), application.image(), Map.of(),
+        return new ContainerSpec(application.name(), application.image(), application.env(),
                 application.volumes(), application.routes());
     }
 
-    public static ContainerSpec forApplication(Application application, Map<String, String> env) {
-        return new ContainerSpec(application.name(), application.image(), env,
+    /**
+     * Wie {@link #forApplication(Application)}, aber mit transientem Umgebungs-Override (operative
+     * Aktion): das deklarierte {@code env} wird um {@code override} ergänzt/überschrieben.
+     */
+    public static ContainerSpec forApplication(Application application, Map<String, String> override) {
+        Map<String, String> merged = new LinkedHashMap<>(application.env());
+        if (override != null) {
+            merged.putAll(override);
+        }
+        return new ContainerSpec(application.name(), application.image(), merged,
                 application.volumes(), application.routes());
     }
 }

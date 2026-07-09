@@ -293,6 +293,21 @@ function AppDetailInner() {
               </TableBody>
             </Table>
           </TableContainer>
+          {cur.envKeys.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Konfiguration (Env, deklariert)
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }} useFlexGap>
+                {cur.envKeys.map((k) => (
+                  <Chip key={k} size="small" label={k} sx={{ fontFamily: "monospace", bgcolor: "rgba(139,147,161,0.15)", color: "#c7cdd6" }} />
+                ))}
+              </Stack>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+                Werte werden aus Datenschutzgründen nicht angezeigt.
+              </Typography>
+            </Box>
+          )}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
             <Card variant="outlined">
               <CardContent>

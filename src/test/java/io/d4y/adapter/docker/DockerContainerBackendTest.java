@@ -3,6 +3,7 @@ package io.d4y.adapter.docker;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.d4y.TestFixtures;
+import io.d4y.domain.model.Application;
 import io.d4y.domain.model.ContainerSpec;
 import io.d4y.domain.model.ImageRef;
 import io.d4y.domain.model.Route;
@@ -92,6 +93,26 @@ class DockerContainerBackendTest {
             assertThat(m.path("Source").asText()).isEqualTo("d4y_nginx_html");
             assertThat(m.path("Target").asText()).isEqualTo("/usr/share/nginx/html");
         });
+    }
+
+    @Test
+    void createPayloadStampsEnvAndMergesOverride() throws Exception {
+        CapturingClient client = new CapturingClient();
+        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client));
+
+        Application app = new Application("web", ImageRef.of("nginx:1.27-alpine"), List.of(), List.of(),
+                Map.of("LOG_LEVEL", "info"));
+        // Operativer Override gewinnt über das deklarierte env.
+        backend.run(ContainerSpec.forApplication(app, Map.of("LOG_LEVEL", "debug", "EXTRA", "1")));
+
+        JsonNode createBody = json.readTree(client.bodies.get("/containers/create"));
+        List<String> env = new ArrayList<>();
+        createBody.path("Env").forEach(e -> env.add(e.asText()));
+        assertThat(env).contains("LOG_LEVEL=debug", "EXTRA=1");
+
+        JsonNode envLabel = json.readTree(createBody.path("Labels").path("d4y.env").asText());
+        assertThat(envLabel.path("LOG_LEVEL").asText()).isEqualTo("debug");
+        assertThat(envLabel.path("EXTRA").asText()).isEqualTo("1");
     }
 
     @Test

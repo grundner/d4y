@@ -22,6 +22,9 @@ public final class D4yLabels {
     /** Kodierte Route-Deklaration, mit der der Container erzeugt wurde (für Drift-Vergleich). */
     public static final String ROUTES = "d4y.routes";
 
+    /** Kodierte (tatsächlich angewandte) Umgebungsvariablen (JSON) für den Drift-Vergleich. */
+    public static final String ENV = "d4y.env";
+
     private D4yLabels() {
     }
 }

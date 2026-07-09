@@ -17,6 +17,10 @@ Eine Application kann zusätzlich **[Volumes](volume.md)** deklarieren, in denen
 Daten ablegt, sowie **optional** eine **[Backup](backup.md)-Policy**, die diese Daten durable und
 über einen frischen Server wiederherstellbar macht. Ohne Backup-Policy ist die App ephemer.
 
+Konfigurationswerte werden als deklarierte **Umgebungsvariablen** (`env`) beschrieben; sie sind
+Teil des Sollzustands. Operative Aktionen können sie temporär überschreiben (transiente,
+sanktionierte Drift unter einem [Hold](reconciliation-hold.md)).
+
 Für die Erreichbarkeit besitzt jede App einen stabilen internen Namen
 ([Service-Discovery](service-discovery.md)) und kann **optional** eine oder mehrere
 **[Routes](route.md)** (Hostname → App) für externen Zugriff deklarieren.

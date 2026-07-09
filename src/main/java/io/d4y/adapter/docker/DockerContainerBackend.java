@@ -63,8 +63,9 @@ public class DockerContainerBackend implements ContainerBackend {
             boolean running = "running".equals(node.path("State").asText());
             List<VolumeMapping> volumes = VolumeMapping.decode(labels.getOrDefault(D4yLabels.VOLUMES, ""));
             List<Route> routes = Route.decode(labels.getOrDefault(D4yLabels.ROUTES, ""));
+            Map<String, String> env = decodeEnv(labels.getOrDefault(D4yLabels.ENV, ""));
             result.add(new ObservedContainer(node.path("Id").asText(), appName, ImageRef.of(imageRef),
-                    running, volumes, routes));
+                    running, volumes, routes, env));
         }
         return result;
     }
@@ -132,6 +133,16 @@ public class DockerContainerBackend implements ContainerBackend {
         return s.replaceAll("[^a-zA-Z0-9-]", "-");
     }
 
+    /** Dekodiert das {@code d4y.env}-Label (JSON-Objekt) zurück in eine Map. */
+    private Map<String, String> decodeEnv(String encoded) {
+        if (encoded == null || encoded.isBlank()) {
+            return Map.of();
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        readTree(encoded).fields().forEachRemaining(e -> result.put(e.getKey(), e.getValue().asText()));
+        return result;
+    }
+
     @Override
     public String run(ContainerSpec spec) {
         ensureImage(spec.image());
@@ -142,6 +153,7 @@ public class DockerContainerBackend implements ContainerBackend {
         labels.put(D4yLabels.IMAGE, spec.image().reference());
         labels.put(D4yLabels.VOLUMES, VolumeMapping.encode(spec.volumes()));
         labels.put(D4yLabels.ROUTES, Route.encode(spec.routes()));
+        labels.put(D4yLabels.ENV, toJson(spec.env()));
         addTraefikLabels(labels, spec);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("Image", spec.image().reference());
