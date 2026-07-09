@@ -8,6 +8,7 @@ import io.d4y.domain.model.D4yLabels;
 import io.d4y.domain.model.ExecResult;
 import io.d4y.domain.model.ImageRef;
 import io.d4y.domain.model.ObservedContainer;
+import io.d4y.domain.model.Route;
 import io.d4y.domain.model.VolumeMapping;
 import io.d4y.port.ContainerBackend;
 import org.slf4j.Logger;
@@ -38,10 +39,12 @@ public class DockerContainerBackend implements ContainerBackend {
 
     private final DockerHttpClient docker;
     private final ObjectMapper json;
+    private final DockerEdgeProxy edgeProxy;
 
-    public DockerContainerBackend(DockerHttpClient docker, ObjectMapper json) {
+    public DockerContainerBackend(DockerHttpClient docker, ObjectMapper json, DockerEdgeProxy edgeProxy) {
         this.docker = docker;
         this.json = json;
+        this.edgeProxy = edgeProxy;
     }
 
     @Override
@@ -59,7 +62,9 @@ public class DockerContainerBackend implements ContainerBackend {
             String imageRef = labels.getOrDefault(D4yLabels.IMAGE, node.path("Image").asText("unknown"));
             boolean running = "running".equals(node.path("State").asText());
             List<VolumeMapping> volumes = VolumeMapping.decode(labels.getOrDefault(D4yLabels.VOLUMES, ""));
-            result.add(new ObservedContainer(node.path("Id").asText(), appName, ImageRef.of(imageRef), running, volumes));
+            List<Route> routes = Route.decode(labels.getOrDefault(D4yLabels.ROUTES, ""));
+            result.add(new ObservedContainer(node.path("Id").asText(), appName, ImageRef.of(imageRef),
+                    running, volumes, routes));
         }
         return result;
     }
@@ -91,6 +96,35 @@ public class DockerContainerBackend implements ContainerBackend {
         return volName;
     }
 
+    /**
+     * Übersetzt die deklarierten {@link Route}s in Traefik-Router/Service-Labels (Docker-Provider,
+     * ADR-0016). Je Route entstehen ein Router (Host/PathPrefix) und ein Service (Ziel-Port).
+     */
+    private void addTraefikLabels(Map<String, Object> labels, ContainerSpec spec) {
+        if (spec.routes().isEmpty()) {
+            return;
+        }
+        labels.put("traefik.enable", "true");
+        String base = sanitize(spec.appName());
+        int i = 0;
+        for (Route r : spec.routes()) {
+            String rn = "d4y-" + base + "-" + i;
+            String rule = "Host(`" + r.host() + "`)";
+            if (!"/".equals(r.path())) {
+                rule += " && PathPrefix(`" + r.path() + "`)";
+            }
+            labels.put("traefik.http.routers." + rn + ".rule", rule);
+            labels.put("traefik.http.routers." + rn + ".entrypoints", "web");
+            labels.put("traefik.http.routers." + rn + ".service", rn);
+            labels.put("traefik.http.services." + rn + ".loadbalancer.server.port", String.valueOf(r.port()));
+            i++;
+        }
+    }
+
+    private static String sanitize(String s) {
+        return s.replaceAll("[^a-zA-Z0-9-]", "-");
+    }
+
     @Override
     public String run(ContainerSpec spec) {
         ensureImage(spec.image());
@@ -100,6 +134,8 @@ public class DockerContainerBackend implements ContainerBackend {
         labels.put(D4yLabels.APP, spec.appName());
         labels.put(D4yLabels.IMAGE, spec.image().reference());
         labels.put(D4yLabels.VOLUMES, VolumeMapping.encode(spec.volumes()));
+        labels.put(D4yLabels.ROUTES, Route.encode(spec.routes()));
+        addTraefikLabels(labels, spec);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("Image", spec.image().reference());
         body.put("Labels", labels);
@@ -120,6 +156,13 @@ public class DockerContainerBackend implements ContainerBackend {
             hostConfig.put("Mounts", mounts);
             body.put("HostConfig", hostConfig);
         }
+
+        // Alle verwalteten Container hängen am gemeinsamen d4y-Netz (Ingress via Traefik +
+        // Grundlage interne Service-Discovery); Alias = App-Name. ADR-0016.
+        edgeProxy.ensureNetwork();
+        Map<String, Object> endpoint = new LinkedHashMap<>();
+        endpoint.put("Aliases", List.of(spec.appName()));
+        body.put("NetworkingConfig", Map.of("EndpointsConfig", Map.of(DockerEdgeProxy.NETWORK, endpoint)));
 
         String createPath = "/containers/create?name=" + enc("d4y_" + spec.appName());
         DockerHttpClient.Response created = docker.post(createPath, toJson(body));

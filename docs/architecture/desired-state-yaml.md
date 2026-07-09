@@ -64,11 +64,15 @@ Jeder Eintrag ordnet einen **Hostnamen** (und ggf. Pfad) der App zu — externer
 | ------ | ------- | ------ | --------- |
 | `host` | ja      | String | Hostname, unter dem die App erreichbar sein soll (z. B. `web.example.com`); ohne Schema/Slash. |
 | `path` | nein    | String | Pfad-Präfix; muss mit `/` beginnen. Default `/`. |
+| `port` | nein    | Zahl   | Ziel-Port im Container, an den der Reverse Proxy weiterreicht. Default `80`. |
 
-> **Umsetzungsstand:** Routes sind derzeit **rein deklarativ und sichtbar** (Anzeige im Frontend,
-> Ausgabe über `GET /api/status`). Das Ableiten und Anwenden einer **Reverse-Proxy-Konfiguration**
-> folgt in einer späteren Ausbaustufe (eigene ADR) — siehe
-> [networking-and-dns](networking-and-dns.md). Routes lösen daher **keinen** Container-Replace aus.
+> **Umsetzungsstand ([ADR-0016](../decisions/0016-reverse-proxy-traefik-docker-labels.md)):** Routes
+> werden über einen von D4Y verwalteten **Traefik**-Reverse-Proxy angewandt (Docker-Provider,
+> HTTP `:80`). D4Y rendert je Route Traefik-Router/Service-Labels auf den App-Container und hängt
+> alle verwalteten Container an ein gemeinsames `d4y`-Netz. Weil diese Labels beim Erstellen gebacken
+> werden, ist eine geänderte Route-Deklaration **Drift** und führt zu einem Container-**Replace**.
+> TLS und die DNS-Modi (managed/extern) folgen später — siehe
+> [networking-and-dns](networking-and-dns.md).
 
 ## Beispiel
 
@@ -86,6 +90,7 @@ routes:
   - host: nginx.example.com
   - host: api.example.com
     path: /v1
+    port: 8080
 ```
 
 Mehrere Apps in einer Datei (Listen-Form):
@@ -107,9 +112,9 @@ Der [Reconciliation-Loop](reconciliation-loop.md) läuft periodisch
 
 1. **Laden (Soll):** Alle YAML-Dateien werden zum aktuellen Sollzustand eingelesen.
 2. **Beobachten (Ist):** D4Y listet die von ihm verwalteten Container (Label `d4y.managed=true`)
-   und liest deren Labels `d4y.app`, `d4y.image`, `d4y.volumes`.
+   und liest deren Labels `d4y.app`, `d4y.image`, `d4y.volumes`, `d4y.routes`.
 3. **Abgleich:** Je deklarierter App wird verglichen. Ein Container **passt**, wenn er läuft **und**
-   mit derselben Image-Referenz **und** derselben Volume-Deklaration erzeugt wurde. Andernfalls:
+   mit derselben Image-Referenz, Volume- **und** Route-Deklaration erzeugt wurde. Andernfalls:
    - kein Container vorhanden → **Start**,
    - Container vorhanden, weicht aber ab (Image, Running-Status **oder** Volumes) → **Replace**
      (stoppen/entfernen, neu erstellen),

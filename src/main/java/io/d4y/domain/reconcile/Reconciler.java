@@ -3,6 +3,7 @@ package io.d4y.domain.reconcile;
 import io.d4y.domain.model.Application;
 import io.d4y.domain.model.DesiredState;
 import io.d4y.domain.model.ObservedContainer;
+import io.d4y.domain.model.Route;
 import io.d4y.domain.model.VolumeMapping;
 
 import java.util.ArrayList;
@@ -74,12 +75,13 @@ public class Reconciler {
     }
 
     /**
-     * Ein Container passt, wenn er läuft und mit der deklarierten Image-Referenz sowie den
-     * deklarierten Named Volumes erzeugt wurde.
+     * Ein Container passt, wenn er läuft und mit der deklarierten Image-Referenz, den deklarierten
+     * Named Volumes sowie den deklarierten Routes erzeugt wurde.
      */
     private boolean matches(Application app, ObservedContainer observed) {
         return observed.running()
                 && observed.image().equals(app.image())
-                && VolumeMapping.encode(app.volumes()).equals(VolumeMapping.encode(observed.volumes()));
+                && VolumeMapping.encode(app.volumes()).equals(VolumeMapping.encode(observed.volumes()))
+                && Route.encode(app.routes()).equals(Route.encode(observed.routes()));
     }
 }

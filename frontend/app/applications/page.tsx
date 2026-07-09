@@ -237,8 +237,8 @@ function ApplicationsInner() {
       )}
 
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
-        Routes werden read-only angezeigt; die Reverse-Proxy-Anbindung sowie Backup-Policy folgen mit den
-        entsprechenden Backend-Ausbaustufen.
+        Routes werden read-only angezeigt und über den Reverse Proxy (Traefik) angewandt; Backup-Policy folgt
+        mit der entsprechenden Backend-Ausbaustufe.
       </Typography>
     </>
   );

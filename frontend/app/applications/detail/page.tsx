@@ -369,6 +369,7 @@ function AppDetailInner() {
                   <TableRow>
                     <TableCell>Hostname</TableCell>
                     <TableCell>Pfad</TableCell>
+                    <TableCell>Ziel-Port</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -376,14 +377,15 @@ function AppDetailInner() {
                     <TableRow key={`${r.host}${r.path}`}>
                       <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{r.host}</TableCell>
                       <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{r.path}</TableCell>
+                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{r.port}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
             <Typography variant="body2" color="text.secondary">
-              Deklarierter externer Ingress (Soll, aus <code>GET /api/status</code>). Die Reverse-Proxy-
-              Anbindung folgt in einer späteren Ausbaustufe; Deklaration nur über das Config-Repository (Git).
+              Deklarierter externer Ingress (Soll, aus <code>GET /api/status</code>). Der Reverse Proxy
+              (Traefik) wird aus diesen Routes konfiguriert; Deklaration nur über das Config-Repository (Git).
             </Typography>
           </>
         )

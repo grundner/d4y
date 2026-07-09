@@ -86,7 +86,7 @@ Diese Seite an die reale API binden — Antwortschema von `GET /api/status`:
   "applications": [
     {"name":"nginx","desiredImage":"nginx:1.27-alpine","state":"IN_SYNC|MISSING|STOPPED|OUTDATED","running":true,"containerId":"df24…",
      "volumes":[{"name":"html","path":"/usr/share/nginx/html"}],
-     "routes":[{"host":"nginx.example.com","path":"/"}]}
+     "routes":[{"host":"nginx.example.com","path":"/","port":80}]}
   ],
   "undeclared": [ {"appName":"…","image":"…","containerId":"…","running":true,"volumes":[{"name":"…","path":"/…"}]} ]
 }

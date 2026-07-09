@@ -4,6 +4,7 @@ import io.d4y.domain.model.Application;
 import io.d4y.domain.model.DesiredState;
 import io.d4y.domain.model.ImageRef;
 import io.d4y.domain.model.ObservedContainer;
+import io.d4y.domain.model.Route;
 import io.d4y.domain.model.VolumeMapping;
 import org.junit.jupiter.api.Test;
 
@@ -87,6 +88,18 @@ class ReconcilerTest {
 
         assertThat(plan.actions()).singleElement().isInstanceOf(ReconcileAction.Noop.class);
         assertThat(plan.isInSync()).isTrue();
+    }
+
+    @Test
+    void replacesOnRouteChange() {
+        Application desired = new Application("web", ImageRef.of("nginx:1.27"), List.of(),
+                List.of(new Route("web.example.com", "/", 80)));
+        ObservedContainer observed = new ObservedContainer("c1", "web", ImageRef.of("nginx:1.27"), true,
+                List.of(), List.of(new Route("web.example.com", "/", 8080)));
+
+        var plan = reconciler.plan(new DesiredState(List.of(desired)), List.of(observed));
+
+        assertThat(plan.actions()).singleElement().isInstanceOf(ReconcileAction.Replace.class);
     }
 
     @Test

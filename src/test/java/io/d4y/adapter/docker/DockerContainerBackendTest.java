@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.d4y.TestFixtures;
 import io.d4y.domain.model.ContainerSpec;
 import io.d4y.domain.model.ImageRef;
+import io.d4y.domain.model.Route;
 import io.d4y.domain.model.VolumeMapping;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +23,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DockerContainerBackendTest {
 
     private final ObjectMapper json = new ObjectMapper();
+
+    /** Edge-Proxy-Stub: ensureNetwork ohne echten Docker-Aufruf. */
+    private DockerEdgeProxy edge(DockerHttpClient client) {
+        return new DockerEdgeProxy(client, json, TestFixtures.props()) {
+            @Override
+            public void ensureNetwork() {
+                // no-op im Test
+            }
+        };
+    }
 
     /** Zeichnet POST-Aufrufe auf und liefert plausible Engine-Antworten. */
     private static final class CapturingClient extends DockerHttpClient {
@@ -57,7 +68,7 @@ class DockerContainerBackendTest {
     @Test
     void createPayloadMountsNamedVolumeAndEnsuresVolume() throws Exception {
         CapturingClient client = new CapturingClient();
-        DockerContainerBackend backend = new DockerContainerBackend(client, json);
+        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client));
 
         ContainerSpec spec = new ContainerSpec("nginx", ImageRef.of("nginx:1.27-alpine"), Map.of(),
                 List.of(new VolumeMapping("html", "/usr/share/nginx/html")));
@@ -86,7 +97,7 @@ class DockerContainerBackendTest {
     @Test
     void createPayloadHasNoHostConfigWithoutVolumes() throws Exception {
         CapturingClient client = new CapturingClient();
-        DockerContainerBackend backend = new DockerContainerBackend(client, json);
+        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client));
 
         backend.run(ContainerSpec.forApplication(
                 new io.d4y.domain.model.Application("nginx", ImageRef.of("nginx:1.27-alpine"))));
@@ -95,5 +106,30 @@ class DockerContainerBackendTest {
         JsonNode createBody = json.readTree(client.bodies.get("/containers/create"));
         assertThat(createBody.has("HostConfig")).isFalse();
         assertThat(createBody.path("Labels").path("d4y.volumes").asText()).isEmpty();
+        // Netzanbindung ist immer gesetzt (gemeinsames d4y-Netz).
+        assertThat(createBody.path("NetworkingConfig").path("EndpointsConfig").has("d4y")).isTrue();
+    }
+
+    @Test
+    void createPayloadAddsTraefikLabelsAndNetworkForRoutes() throws Exception {
+        CapturingClient client = new CapturingClient();
+        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client));
+
+        ContainerSpec spec = new ContainerSpec("web", ImageRef.of("nginx:1.27-alpine"), Map.of(),
+                List.of(), List.of(new Route("web.example.com", "/", 8080)));
+
+        backend.run(spec);
+
+        JsonNode createBody = json.readTree(client.bodies.get("/containers/create"));
+        JsonNode labels = createBody.path("Labels");
+        assertThat(labels.path("d4y.routes").asText()).isEqualTo("web.example.com|/|8080");
+        assertThat(labels.path("traefik.enable").asText()).isEqualTo("true");
+        assertThat(labels.path("traefik.http.routers.d4y-web-0.rule").asText())
+                .isEqualTo("Host(`web.example.com`)");
+        assertThat(labels.path("traefik.http.services.d4y-web-0.loadbalancer.server.port").asText())
+                .isEqualTo("8080");
+        // Ziel-Alias im d4y-Netz = App-Name.
+        assertThat(createBody.path("NetworkingConfig").path("EndpointsConfig").path("d4y")
+                .path("Aliases").get(0).asText()).isEqualTo("web");
     }
 }

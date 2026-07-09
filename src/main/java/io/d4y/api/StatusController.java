@@ -105,6 +105,6 @@ public class StatusController {
     }
 
     private static List<RouteInfo> toRouteInfos(List<Route> routes) {
-        return routes.stream().map(r -> new RouteInfo(r.host(), r.path())).toList();
+        return routes.stream().map(r -> new RouteInfo(r.host(), r.path(), r.port())).toList();
     }
 }

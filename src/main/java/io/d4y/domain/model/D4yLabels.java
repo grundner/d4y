@@ -19,6 +19,9 @@ public final class D4yLabels {
     /** Kodierte Named-Volume-Deklaration, mit der der Container erzeugt wurde (für Drift-Vergleich). */
     public static final String VOLUMES = "d4y.volumes";
 
+    /** Kodierte Route-Deklaration, mit der der Container erzeugt wurde (für Drift-Vergleich). */
+    public static final String ROUTES = "d4y.routes";
+
     private D4yLabels() {
     }
 }

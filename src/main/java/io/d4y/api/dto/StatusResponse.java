@@ -50,7 +50,7 @@ public record StatusResponse(String overall,
     public record VolumeInfo(String name, String path) {
     }
 
-    /** Deklaration einer Route: Hostname (+ Pfad) für externen Ingress. */
-    public record RouteInfo(String host, String path) {
+    /** Deklaration einer Route: Hostname (+ Pfad + Ziel-Port) für externen Ingress. */
+    public record RouteInfo(String host, String path, int port) {
     }
 }

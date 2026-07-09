@@ -33,4 +33,25 @@ class RouteTest {
     void rejectsRelativePath() {
         assertThatThrownBy(() -> new Route("web.example.com", "v1")).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void defaultsPortTo80() {
+        assertThat(new Route("web.example.com", "/").port()).isEqualTo(80);
+    }
+
+    @Test
+    void rejectsInvalidPort() {
+        assertThatThrownBy(() -> new Route("web.example.com", "/", 0)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new Route("web.example.com", "/", 70000)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void encodeDecodeRoundTrip() {
+        java.util.List<Route> routes = java.util.List.of(
+                new Route("web.example.com", "/", 80),
+                new Route("api.example.com", "/v1", 8080));
+
+        assertThat(Route.decode(Route.encode(routes)))
+                .containsExactlyInAnyOrderElementsOf(routes);
+    }
 }

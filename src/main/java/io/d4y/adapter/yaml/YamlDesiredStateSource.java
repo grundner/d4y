@@ -98,7 +98,9 @@ public class YamlDesiredStateSource implements DesiredStateSource {
                 throw new IllegalArgumentException("Datei " + file + ": jede Route braucht 'host'");
             }
             JsonNode path = r.get("path");
-            result.add(new Route(host.asText(), path == null ? null : path.asText()));
+            JsonNode port = r.get("port");
+            result.add(new Route(host.asText(), path == null ? null : path.asText(),
+                    port == null ? 80 : port.asInt(80)));
         }
         return result;
     }

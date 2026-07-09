@@ -17,6 +17,7 @@ export interface StatusVolume {
 export interface StatusRoute {
   host: string;
   path: string;
+  port: number;
 }
 
 export interface StatusApp {
