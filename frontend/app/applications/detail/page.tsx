@@ -82,7 +82,15 @@ function AppDetailInner() {
   const reload = () => setLocalReload((n) => n + 1);
 
   const [details, setDetails] = React.useState<ContainerDetails | null>(null);
-  const [tab, setTab] = React.useState("overview");
+  const TABS = ["overview", "logs", "exec", "volumes", "routes", "hold"];
+  const urlTab = searchParams.get("tab") ?? "";
+  const [tab, setTab] = React.useState(TABS.includes(urlTab) ? urlTab : "overview");
+  const changeTab = (v: string) => {
+    setTab(v);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", v);
+    router.replace(`/applications/detail?${params.toString()}`, { scroll: false });
+  };
 
   const [dlg, setDlg] = React.useState<DialogKind>(null);
   const [durationMin, setDurationMin] = React.useState(15);
@@ -244,7 +252,7 @@ function AppDetailInner() {
         </Alert>
       )}
 
-      <Tabs value={tab} onChange={(_e, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: "divider", mb: 2.5 }}>
+      <Tabs value={tab} onChange={(_e, v) => changeTab(v)} variant="scrollable" scrollButtons="auto" sx={{ borderBottom: 1, borderColor: "divider", mb: 2.5 }}>
         <Tab value="overview" label="Übersicht" />
         <Tab value="logs" label="Logs" />
         <Tab value="exec" label="exec / Shell" />

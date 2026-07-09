@@ -153,6 +153,16 @@ export function useConfig(reloadKey: number): UseResource<ConfigInfo> {
   return useResource<ConfigInfo>("/api/config", reloadKey);
 }
 
+// Schema von GET /api/config/files.
+export interface ConfigFiles {
+  files: string[];
+}
+
+/** Lädt die deklarierten YAML-Dateien von GET /api/config/files. */
+export function useConfigFiles(reloadKey: number): UseResource<ConfigFiles> {
+  return useResource<ConfigFiles>("/api/config/files", reloadKey);
+}
+
 /** Lädt die aktiven Holds von GET /api/holds. */
 export function useHolds(reloadKey: number): UseResource<HoldItem[]> {
   return useResource<HoldItem[]>("/api/holds", reloadKey);

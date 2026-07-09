@@ -4,9 +4,8 @@ import * as React from "react";
 import { Alert, AlertTitle, Box, Button, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import FolderIcon from "@mui/icons-material/Folder";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import { useConfig } from "@/lib/api";
+import { useConfig, useConfigFiles } from "@/lib/api";
 import { useD4y } from "@/lib/store";
 import { formatTimestamp } from "@/lib/format";
 
@@ -21,19 +20,11 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
   );
 }
 
-const OBJECTS: { icon: "folder" | "file"; text: string; indent?: boolean }[] = [
-  { icon: "folder", text: "apps/" },
-  { icon: "file", text: "nginx.yaml · api-gateway.yaml · postgres.yaml · …", indent: true },
-  { icon: "folder", text: "routes/" },
-  { icon: "folder", text: "volumes/" },
-  { icon: "file", text: "registries.yaml" },
-  { icon: "file", text: "backup-stores.yaml" },
-  { icon: "file", text: "dns.yaml" },
-];
-
 export default function ConfigPage() {
   const { refreshSignal } = useD4y();
   const { data: config } = useConfig(refreshSignal);
+  const { data: fileList } = useConfigFiles(refreshSignal);
+  const files = fileList?.files ?? [];
   const isGit = config?.mode === "git";
   const dash = (v: string | null | undefined) => (v && v.length > 0 ? v : "—");
   return (
@@ -88,19 +79,19 @@ export default function ConfigPage() {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Deklarierte Objekte
+              Deklarierte Dateien ({files.length})
             </Typography>
             <Box sx={{ fontFamily: "monospace", fontSize: 13, mt: 1.5 }}>
-              {OBJECTS.map((o, i) => (
-                <Stack key={i} direction="row" spacing={1} alignItems="center" sx={{ py: 0.5, pl: o.indent ? 2.75 : 0, color: o.indent ? "text.secondary" : "text.primary" }}>
-                  {o.icon === "folder" ? (
-                    <FolderIcon sx={{ fontSize: 18, color: "#e0a94a" }} />
-                  ) : (
+              {files.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">Keine YAML-Dateien gefunden.</Typography>
+              ) : (
+                files.map((f) => (
+                  <Stack key={f} direction="row" spacing={1} alignItems="center" sx={{ py: 0.5 }}>
                     <InsertDriveFileIcon sx={{ fontSize: 16, color: "#8b93a1" }} />
-                  )}
-                  <span>{o.text}</span>
-                </Stack>
-              ))}
+                    <span>{f}</span>
+                  </Stack>
+                ))
+              )}
             </Box>
           </CardContent>
         </Card>

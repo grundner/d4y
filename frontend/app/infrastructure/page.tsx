@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Box, Card, CardContent, Chip, Paper, Stack, Typography } from "@mui/material";
+import { Alert, Box, Card, CardContent, Chip, Paper, Stack, Typography } from "@mui/material";
 import StorageIcon from "@mui/icons-material/Storage";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import CloudIcon from "@mui/icons-material/Cloud";
@@ -23,9 +23,14 @@ export default function InfrastructurePage() {
       <Typography variant="h4" sx={{ fontWeight: 400 }}>
         Infrastruktur / Topologie
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2.5 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
         Austauschbare, zustandslose Bausteine — die Persistenz liegt außerhalb der Laufzeit
       </Typography>
+
+      <Alert severity="info" sx={{ mb: 2.5 }}>
+        <b>Beispieldaten.</b> Server, Registries, Backup-Stores und DNS-Provider sind noch nicht im
+        Backend modelliert — diese Übersicht zeigt geplante Struktur, keine Live-Daten.
+      </Alert>
 
       <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
         <Paper variant="outlined" sx={{ px: 2, py: 1.25, display: "inline-flex", alignItems: "center", gap: 1 }}>
