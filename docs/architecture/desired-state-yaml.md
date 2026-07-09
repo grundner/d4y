@@ -1,26 +1,29 @@
 # Architektur — Desired-State-YAML (Format & Funktionsweise)
 
 Status: Draft
-Bezug: [ADR-0011](../decisions/0011-interim-local-desired-state-source.md),
+Bezug: [ADR-0019](../decisions/0019-git-config-repository-source.md),
 [ADR-0001](../decisions/0001-git-as-single-source-of-truth.md),
 [config-repository](../domain/config-repository.md), [reconciliation-loop](reconciliation-loop.md)
 
-D4Y liest den **Sollzustand** — welche Anwendungen mit welchem Image und welchen Volumes laufen
-sollen — aus deklarativen **YAML-Dateien**. Dieses Dokument beschreibt deren **Struktur** und wie
-D4Y sie **verarbeitet**.
+D4Y liest den **Sollzustand** — welche Anwendungen mit welchem Image, welchen Volumes und Routes
+laufen sollen — aus deklarativen **YAML-Dateien**. Dieses Dokument beschreibt deren **Struktur** und
+wie D4Y sie **verarbeitet**.
 
-> **Interim (ADR-0011):** In der ersten Ausbaustufe stammen diese Dateien aus einem **lokalen
-> Verzeichnis** statt aus einem geklonten Git-Repository. Format und Verarbeitung bleiben gleich,
-> sobald die Git-Anbindung folgt; nur die Bezugsquelle ändert sich. Der Sollzustand ist und bleibt
-> **read-only für UI und API** ([ADR-0001](../decisions/0001-git-as-single-source-of-truth.md)) —
-> Änderungen erfolgen ausschließlich über diese Dateien (später Git).
+> **Bezugsquelle ([ADR-0019](../decisions/0019-git-config-repository-source.md)):** Ist eine
+> `d4y.config-repo.url` gesetzt, klont D4Y das **Git-Config-Repository** und aktualisiert es
+> periodisch (read-only Spiegel); die YAML-Dateien werden aus dem Klon gelesen. Ohne URL greift der
+> **lokale Fallback** (`d4y.desired-state.path`, Default `./desired`) — praktisch für Entwicklung.
+> Format und Verarbeitung sind in beiden Fällen identisch; der Sollzustand ist **read-only für UI
+> und API** ([ADR-0001](../decisions/0001-git-as-single-source-of-truth.md)) — Änderungen erfolgen
+> ausschließlich über die Dateien (im Git-Modus über Commits).
 
 ## Ablage & Erkennung
 
-- Das Verzeichnis wird über die Konfiguration `d4y.desired-state.path` bestimmt (Default:
-  `./desired`).
+- **Git-Modus:** Verzeichnis = `<klon>/<d4y.config-repo.path>` (Default: Repo-Wurzel).
+  **Lokaler Modus:** `d4y.desired-state.path` (Default `./desired`).
 - Alle Dateien mit Endung `*.yaml` oder `*.yml` werden gelesen, in **sortierter** Reihenfolge.
-- Existiert das Verzeichnis nicht, gilt ein **leerer** Sollzustand (kein Fehler).
+- Existiert das Verzeichnis nicht (z. B. Klon noch nicht da), gilt ein **leerer** Sollzustand
+  (kein Fehler).
 
 ## Dateiform
 
@@ -145,7 +148,12 @@ Abgleich für ein Ziel vorübergehend aus (weder Replace noch StopAndRemove).
 
 | Schlüssel                          | Default     | Bedeutung |
 | ---------------------------------- | ----------- | --------- |
-| `d4y.desired-state.path`           | `./desired` | Verzeichnis der YAML-Dateien. |
+| `d4y.config-repo.url`              | *(leer)*    | Git-URL des Config-Repos. Gesetzt ⇒ Git-Modus; leer ⇒ lokaler Fallback. |
+| `d4y.config-repo.branch`           | `main`      | Branch/Ref. |
+| `d4y.config-repo.path`             | *(leer)*    | Unterpfad im Repo mit den YAML-Dateien (leer = Wurzel). |
+| `d4y.config-repo.poll-interval-ms` | `30000`     | Intervall für `fetch`/`reset` des Klons. |
+| `d4y.config-repo.username` / `.token` | *(leer)* | HTTPS-Zugangsdaten für private Repos (Geheimnis). |
+| `d4y.desired-state.path`           | `./desired` | YAML-Verzeichnis im **lokalen** Fallback. |
 | `d4y.reconcile.interval-ms`        | `15000`     | Intervall des Reconciliation-Loops in Millisekunden. |
 | `d4y.ingress.https-redirect`       | `true`      | HTTP→HTTPS-Redirect am Reverse Proxy. |
 | `d4y.ingress.internal-domain`      | `d4y.internal` | Interne DNS-Domain für Service-Discovery-Aliase (`<app>.<domain>`). |

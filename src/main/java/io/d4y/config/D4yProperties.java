@@ -17,7 +17,8 @@ public record D4yProperties(
         @DefaultValue DesiredState desiredState,
         @DefaultValue Reconcile reconcile,
         @DefaultValue Operations operations,
-        @DefaultValue Ingress ingress) {
+        @DefaultValue Ingress ingress,
+        @DefaultValue ConfigRepo configRepo) {
 
     /** Anbindung an die Docker-Engine (HTTP über Unix-Socket). */
     public record Docker(
@@ -26,8 +27,29 @@ public record D4yProperties(
             @DefaultValue("") String apiVersion) {
     }
 
-    /** Herkunft des Sollzustands. ADR-0011 (Interim): lokales Verzeichnis, später Git. */
+    /** Lokale Herkunft des Sollzustands (Fallback, wenn kein Git-Config-Repo gesetzt ist). */
     public record DesiredState(@DefaultValue("./desired") String path) {
+    }
+
+    /**
+     * Git-Config-Repository als Sollzustands-Quelle (ADR-0019). Aktiv, sobald {@code url} gesetzt ist;
+     * sonst greift der lokale {@link DesiredState}-Modus.
+     *
+     * @param path lokaler Unterpfad im Repo mit den YAML-Dateien ({@code ""} = Repo-Wurzel)
+     * @param localDir lokales Arbeitsverzeichnis für den Klon
+     * @param username/token HTTPS-Zugangsdaten für private Repos (Geheimnisse)
+     */
+    public record ConfigRepo(@DefaultValue("") String url,
+                             @DefaultValue("main") String branch,
+                             @DefaultValue("") String path,
+                             @DefaultValue("./.d4y-config") String localDir,
+                             @DefaultValue("30000") long pollIntervalMs,
+                             @DefaultValue("") String username,
+                             @DefaultValue("") String token) {
+
+        public boolean enabled() {
+            return url != null && !url.isBlank();
+        }
     }
 
     /** Steuerung des Reconciliation-Loops. */

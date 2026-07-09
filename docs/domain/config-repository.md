@@ -18,8 +18,9 @@ Das Repository enthält den gewünschten Zustand — nicht die Schritte, um ihn 
 
 - Liefert den **Soll-Zustand** für den [Desired-vs-Actual-State](desired-vs-actual-state.md).
 - Wird vom [Reconciliation](reconciliation.md)-Prozess kontinuierlich gelesen.
-- Die konkrete **YAML-Struktur** des Sollzustands (interim aus einem lokalen Verzeichnis,
-  [ADR-0011](../decisions/0011-interim-local-desired-state-source.md)) ist in
+- D4Y bezieht den Sollzustand per **Git-Clone/Pull** aus diesem Repository
+  ([ADR-0019](../decisions/0019-git-config-repository-source.md); ohne konfigurierte URL ein
+  lokaler Entwicklungs-Fallback). Die konkrete **YAML-Struktur** ist in
   [architecture/desired-state-yaml](../architecture/desired-state-yaml.md) beschrieben.
 
 ## Regeln

@@ -28,7 +28,7 @@ import SourceIcon from "@mui/icons-material/Source";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { useD4y } from "@/lib/store";
-import { CONFIG_REPO } from "@/lib/mockData";
+import { useConfig } from "@/lib/api";
 
 const DRAWER_WIDTH = 250;
 
@@ -41,7 +41,18 @@ const NAV = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/";
-  const { autoRefresh, toggleAutoRefresh, refreshing, manualRefresh } = useD4y();
+  const { autoRefresh, toggleAutoRefresh, refreshing, manualRefresh, refreshSignal } = useD4y();
+  const { data: config } = useConfig(refreshSignal);
+  const configVersion = config
+    ? config.mode === "git"
+      ? `${config.branch} @ ${config.commit ?? "…"}`
+      : "lokal"
+    : "…";
+  const configDetail = config
+    ? config.mode === "git"
+      ? config.message ?? config.source
+      : config.source
+    : "";
 
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>
@@ -146,9 +157,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: "0.07em" }}>
               Config-Version
             </Typography>
-            <Typography sx={{ fontFamily: "monospace", fontSize: 13 }}>{CONFIG_REPO.version}</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {CONFIG_REPO.reconcile}
+            <Typography sx={{ fontFamily: "monospace", fontSize: 13 }}>{configVersion}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, wordBreak: "break-word" }}>
+              {configDetail}
             </Typography>
           </Box>
         </Box>

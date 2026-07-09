@@ -46,6 +46,20 @@ export interface StatusResponse {
   undeclared: StatusUndeclared[];
 }
 
+// Schema von GET /api/config (siehe Backend ConfigController).
+export interface ConfigInfo {
+  /** "git" oder "local". */
+  mode: string;
+  /** Repo-URL (git) bzw. lokaler Pfad (local). */
+  source: string;
+  branch: string | null;
+  commit: string | null;
+  author: string | null;
+  message: string | null;
+  /** ISO-8601-Zeitpunkt des Commits (UTC). */
+  time: string | null;
+}
+
 // Schema von GET /api/holds (siehe Backend HoldController / HoldView).
 export interface HoldItem {
   app: string;
@@ -130,6 +144,11 @@ function useResource<T>(path: string, reloadKey: number): UseResource<T> {
 /** Lädt den Plattformzustand von GET /api/status. */
 export function useStatus(reloadKey: number): UseResource<StatusResponse> {
   return useResource<StatusResponse>("/api/status", reloadKey);
+}
+
+/** Lädt den Stand des Config-Repositories von GET /api/config. */
+export function useConfig(reloadKey: number): UseResource<ConfigInfo> {
+  return useResource<ConfigInfo>("/api/config", reloadKey);
 }
 
 /** Lädt die aktiven Holds von GET /api/holds. */

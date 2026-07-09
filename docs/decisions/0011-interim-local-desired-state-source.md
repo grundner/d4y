@@ -1,6 +1,6 @@
 # ADR-0011: Interim — lokale Desired-State-Quelle vor Git-Anbindung
 
-Status: Proposed
+Status: Superseded by ADR-0019
 Datum: 2026-07-06
 Betrifft: [config-repository](../domain/config-repository.md), [desired-vs-actual-state](../domain/desired-vs-actual-state.md), [ADR-0001](0001-git-as-single-source-of-truth.md)
 

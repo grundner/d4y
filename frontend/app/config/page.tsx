@@ -6,7 +6,9 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import FolderIcon from "@mui/icons-material/Folder";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import { CONFIG_REPO } from "@/lib/mockData";
+import { useConfig } from "@/lib/api";
+import { useD4y } from "@/lib/store";
+import { formatTimestamp } from "@/lib/format";
 
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
@@ -30,6 +32,10 @@ const OBJECTS: { icon: "folder" | "file"; text: string; indent?: boolean }[] = [
 ];
 
 export default function ConfigPage() {
+  const { refreshSignal } = useD4y();
+  const { data: config } = useConfig(refreshSignal);
+  const isGit = config?.mode === "git";
+  const dash = (v: string | null | undefined) => (v && v.length > 0 ? v : "—");
   return (
     <>
       <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
@@ -64,10 +70,17 @@ export default function ConfigPage() {
               Aktueller Stand
             </Typography>
             <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-              <Field label="Repository" value={CONFIG_REPO.repository} mono />
-              <Field label="Branch" value={CONFIG_REPO.branch} mono />
-              <Field label="Commit" value={CONFIG_REPO.commit} mono />
-              <Field label="Autor / Zeit" value={CONFIG_REPO.author} />
+              <Field label={isGit ? "Repository" : "Lokaler Pfad"} value={dash(config?.source)} mono />
+              <Field label="Branch" value={isGit ? dash(config?.branch) : "— (lokaler Modus)"} mono />
+              <Field label="Commit" value={dash(config?.commit)} mono />
+              <Field
+                label="Autor / Zeit"
+                value={
+                  isGit
+                    ? `${dash(config?.author)} · ${config?.time ? formatTimestamp(config.time) : "—"}`
+                    : "—"
+                }
+              />
             </Stack>
           </CardContent>
         </Card>

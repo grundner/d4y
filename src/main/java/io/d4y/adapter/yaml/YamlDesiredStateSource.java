@@ -8,6 +8,7 @@ import io.d4y.domain.model.Application;
 import io.d4y.domain.model.DesiredState;
 import io.d4y.domain.model.ImageRef;
 import io.d4y.domain.model.Route;
+import io.d4y.adapter.git.GitConfigSync;
 import io.d4y.domain.model.VolumeMapping;
 import io.d4y.port.DesiredStateSource;
 import org.slf4j.Logger;
@@ -36,6 +37,18 @@ public class YamlDesiredStateSource implements DesiredStateSource {
     private final ObjectMapper yaml = new ObjectMapper(new YAMLFactory());
     private final Path directory;
 
+    /**
+     * Liest in Git-Modus (ADR-0019) aus dem Klon-Verzeichnis, sonst aus dem lokalen
+     * {@code desired/}-Fallback.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    public YamlDesiredStateSource(D4yProperties properties, GitConfigSync gitSync) {
+        this.directory = gitSync.enabled()
+                ? gitSync.desiredDir()
+                : Path.of(properties.desiredState().path());
+    }
+
+    /** Lokaler Modus (für Tests). */
     public YamlDesiredStateSource(D4yProperties properties) {
         this.directory = Path.of(properties.desiredState().path());
     }

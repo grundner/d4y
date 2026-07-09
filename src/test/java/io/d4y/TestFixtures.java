@@ -24,6 +24,7 @@ public final class TestFixtures {
                         new D4yProperties.LogsConfig(200)),
                 new D4yProperties.Ingress(true, "d4y.internal", "extern",
                         new D4yProperties.Tls(
-                                new D4yProperties.Acme("", "http", "", "", Map.of()))));
+                                new D4yProperties.Acme("", "http", "", "", Map.of()))),
+                new D4yProperties.ConfigRepo("", "main", "", "./.d4y-config", 30000, "", ""));
     }
 }

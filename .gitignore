@@ -16,6 +16,9 @@ build/
 # --- Maven (falls verwendet) ---
 target/
 
+# --- Lokaler Klon des Git-Config-Repos (ADR-0019) ---
+.d4y-config/
+
 # --- Node / Next.js (vorausschauend; noch kein Frontend) ---
 node_modules/
 .next/

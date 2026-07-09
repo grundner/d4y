@@ -28,8 +28,11 @@ dependencies {
     // Docker-HTTP-Adapter: reactor-netty spricht über den Unix-Socket mit der Engine.
     implementation("io.projectreactor.netty:reactor-netty-http")
 
-    // Desired-State aus lokaler YAML (ADR-0011 Interim).
+    // Desired-State aus YAML (lokal oder aus dem Git-Config-Repo).
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
+
+    // Git-Anbindung des Config-Repositories (ADR-0019): pure-Java, kein git-Binary im Image.
+    implementation("org.eclipse.jgit:org.eclipse.jgit:6.10.0.202406032230-r")
 
     // Native Netty-Transports für Unix-Domain-Sockets:
     //  - kqueue: macOS (Entwicklung), epoll: Linux (Produktion).
