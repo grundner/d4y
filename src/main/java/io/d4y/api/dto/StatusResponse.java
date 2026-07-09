@@ -14,12 +14,14 @@ public record StatusResponse(String overall,
                              List<ExtraContainer> undeclared) {
 
     /**
+     * @param serviceName stabiler interner Name für Service-Discovery ({@code <app>.<internal-domain>})
      * @param state   IN_SYNC | MISSING | OUTDATED | STOPPED
      * @param hold    aktiver Hold für diese App, oder {@code null}
      * @param volumes deklarierte Named Volumes der App (Soll)
      * @param routes  deklarierte Routes (externer Ingress, Soll)
      */
     public record AppStatus(String name,
+                            String serviceName,
                             String desiredImage,
                             String state,
                             boolean running,

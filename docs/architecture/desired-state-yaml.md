@@ -148,6 +148,8 @@ Abgleich für ein Ziel vorübergehend aus (weder Replace noch StopAndRemove).
 | `d4y.desired-state.path`           | `./desired` | Verzeichnis der YAML-Dateien. |
 | `d4y.reconcile.interval-ms`        | `15000`     | Intervall des Reconciliation-Loops in Millisekunden. |
 | `d4y.ingress.https-redirect`       | `true`      | HTTP→HTTPS-Redirect am Reverse Proxy. |
+| `d4y.ingress.internal-domain`      | `d4y.internal` | Interne DNS-Domain für Service-Discovery-Aliase (`<app>.<domain>`). |
+| `d4y.ingress.dns-mode`             | `extern`    | Öffentliche DNS-Verwaltung: `extern` (D4Y fasst DNS nicht an) oder `managed` (Platzhalter). |
 | `d4y.ingress.tls.acme.email`       | *(leer)*    | Gesetzt ⇒ ACME/Let's-Encrypt aktiv; leer ⇒ self-signed Default-Zertifikat. |
 | `d4y.ingress.tls.acme.challenge`   | `http`      | ACME-Challenge: `http` oder `dns`. |
 | `d4y.ingress.tls.acme.dns-provider`| *(leer)*    | Traefik-DNS-Provider (nur bei `challenge=dns`). |

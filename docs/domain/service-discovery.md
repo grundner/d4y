@@ -29,3 +29,10 @@ nur von der Deklaration ab, nicht vom aktuellen Ist-Zustand.
   Server-IPs.
 - Service-Discovery betrifft nur **interne** Kommunikation; externer Zugriff läuft über eine
   [Route](route.md).
+
+## Umsetzung (Interim)
+
+Umgesetzt über das gemeinsame `d4y`-Docker-Netz ([ADR-0018](../decisions/0018-service-discovery-and-dns-mode.md)):
+jeder App-Container erhält die Netz-Aliase `<app>` und `<app>.<internal-domain>` (Default
+`d4y.internal`). Die engine-interne Namensauflösung des Netzes löst App↔App über diese Namen auf.
+Der stabile Name wird als `serviceName` über `GET /api/status` ausgeliefert.

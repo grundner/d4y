@@ -64,8 +64,19 @@ public class DockerEdgeProxy {
         return ingress.tls().acme().enabled() ? CERT_RESOLVER : null;
     }
 
+    /**
+     * Netz-Aliase für die interne Service-Discovery: der App-Name und der stabile FQDN
+     * {@code <app>.<internal-domain>} (ADR-0018).
+     */
+    public List<String> networkAliases(String appName) {
+        return List.of(appName, appName + "." + ingress.internalDomain());
+    }
+
     @EventListener(ApplicationReadyEvent.class)
     public void onStartup() {
+        if (ingress.managedDns()) {
+            log.warn("DNS-Modus 'managed' ist noch nicht implementiert (ADR-0018) — Verhalten wie 'extern'.");
+        }
         ensure();
     }
 

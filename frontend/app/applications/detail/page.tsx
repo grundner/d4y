@@ -195,7 +195,7 @@ function AppDetailInner() {
         <span>
           Service-Discovery:{" "}
           <Box component="span" sx={{ fontFamily: "monospace", color: "text.primary" }}>
-            {name}.d4y.internal
+            {cur.serviceName}
           </Box>
         </span>
       </Stack>

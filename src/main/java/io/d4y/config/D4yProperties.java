@@ -46,8 +46,20 @@ public record D4yProperties(
     public record LogsConfig(@DefaultValue("200") int defaultTail) {
     }
 
-    /** Ingress/TLS-Konfiguration (ADR-0016/0017). */
-    public record Ingress(@DefaultValue("true") boolean httpsRedirect, @DefaultValue Tls tls) {
+    /**
+     * Ingress/TLS/Netzwerk-Konfiguration (ADR-0016/0017/0018).
+     *
+     * @param internalDomain interne DNS-Domain für Service-Discovery-Aliase (`<app>.<domain>`)
+     * @param dnsMode öffentliche DNS-Verwaltung: {@code extern} (Default) oder {@code managed}
+     */
+    public record Ingress(@DefaultValue("true") boolean httpsRedirect,
+                          @DefaultValue("d4y.internal") String internalDomain,
+                          @DefaultValue("extern") String dnsMode,
+                          @DefaultValue Tls tls) {
+
+        public boolean managedDns() {
+            return "managed".equalsIgnoreCase(dnsMode);
+        }
     }
 
     public record Tls(@DefaultValue Acme acme) {

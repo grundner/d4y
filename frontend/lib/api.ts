@@ -22,6 +22,7 @@ export interface StatusRoute {
 
 export interface StatusApp {
   name: string;
+  serviceName: string;
   desiredImage: string;
   state: AppState;
   running: boolean;

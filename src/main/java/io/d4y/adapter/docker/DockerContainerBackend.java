@@ -168,7 +168,7 @@ public class DockerContainerBackend implements ContainerBackend {
         // Grundlage interne Service-Discovery); Alias = App-Name. ADR-0016.
         edgeProxy.ensureNetwork();
         Map<String, Object> endpoint = new LinkedHashMap<>();
-        endpoint.put("Aliases", List.of(spec.appName()));
+        endpoint.put("Aliases", edgeProxy.networkAliases(spec.appName()));
         body.put("NetworkingConfig", Map.of("EndpointsConfig", Map.of(DockerEdgeProxy.NETWORK, endpoint)));
 
         String createPath = "/containers/create?name=" + enc("d4y_" + spec.appName());

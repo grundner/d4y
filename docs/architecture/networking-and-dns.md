@@ -83,6 +83,11 @@ dass die interne Namensauflösung besteht, die Reverse-Proxy-Konfiguration den d
   `websecure :443` + optionaler HTTP→HTTPS-Redirect. **Default self-signed** (Traefik-Zertifikat),
   **ACME opt-in** (`d4y.ingress.tls.acme.*`) mit **HTTP-01- oder DNS-01-Challenge** und persistiertem
   Cert-Store.
-- **Noch offen:** die beiden **DNS-Modi** (managed/extern, automatische Record-Verwaltung) und die
-  explizite interne **Service-Discovery** (das `d4y`-Netz legt die Grundlage) — jeweils eigene
+- **Interne Service-Discovery** ist umgesetzt ([ADR-0018](../decisions/0018-service-discovery-and-dns-mode.md)):
+  jeder App-Container erhält im `d4y`-Netz die Aliase `<app>` und `<app>.<internal-domain>`
+  (Default-Domain `d4y.internal`, `d4y.ingress.internal-domain`); der stabile Name wird als
+  `serviceName` über `GET /api/status` ausgeliefert und im Frontend angezeigt.
+- **DNS-Modus** ist konfigurierbar (`d4y.ingress.dns-mode`, Default `extern`): im **externen** Modus
+  fasst D4Y öffentliches DNS nicht an (funktionaler Default). Der **managed**-Modus (automatische
+  Record-Verwaltung über einen DNS-Provider) ist noch ein dokumentierter Platzhalter — eigene
   Ausbaustufe/ADR.

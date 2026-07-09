@@ -24,7 +24,7 @@ class DockerEdgeProxyTest {
     }
 
     private static D4yProperties.Ingress ingress(boolean redirect, D4yProperties.Acme acme) {
-        return new D4yProperties.Ingress(redirect, new D4yProperties.Tls(acme));
+        return new D4yProperties.Ingress(redirect, "d4y.internal", "extern", new D4yProperties.Tls(acme));
     }
 
     private static D4yProperties.Acme acme(String email, String challenge, String dnsProvider) {
@@ -60,6 +60,13 @@ class DockerEdgeProxyTest {
                         "--certificatesresolvers.le.acme.httpchallenge=true",
                         "--certificatesresolvers.le.acme.storage=/acme/acme.json");
         assertThat(p.certResolver()).isEqualTo("le");
+    }
+
+    @Test
+    void networkAliasesIncludeAppNameAndInternalFqdn() {
+        DockerEdgeProxy p = proxy(ingress(true, acme("", "http", "")));
+
+        assertThat(p.networkAliases("nginx")).containsExactly("nginx", "nginx.d4y.internal");
     }
 
     @Test

@@ -38,12 +38,14 @@ public class StatusController {
     private final DesiredStateSource desiredStateSource;
     private final ContainerBackend backend;
     private final HoldRegistry holdRegistry;
+    private final String internalDomain;
 
     public StatusController(DesiredStateSource desiredStateSource, ContainerBackend backend,
-                           HoldRegistry holdRegistry) {
+                           HoldRegistry holdRegistry, io.d4y.config.D4yProperties properties) {
         this.desiredStateSource = desiredStateSource;
         this.backend = backend;
         this.holdRegistry = holdRegistry;
+        this.internalDomain = properties.ingress().internalDomain();
     }
 
     @GetMapping("/status")
@@ -79,6 +81,7 @@ public class StatusController {
                     : new HoldInfo(hold.type().name(), hold.remainingSeconds(holdRegistry.now()));
             apps.add(new AppStatus(
                     app.name(),
+                    app.name() + "." + internalDomain,
                     app.image().reference(),
                     state,
                     o != null && o.running(),
