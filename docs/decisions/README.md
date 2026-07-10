@@ -22,6 +22,14 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | [0011](0011-interim-local-desired-state-source.md) | Interim: lokale Desired-State-Quelle vor Git-Anbindung | Proposed |
 | [0012](0012-operational-actions-and-reconciliation-hold.md) | Operative Aktionen und Reconciliation-Hold | Accepted |
 | [0013](0013-operational-actions-and-hold-api.md) | Operative-Aktionen- und Hold-API | Accepted |
+| [0014](0014-frontend-static-export-served-by-backend.md) | Frontend als statischer Export, vom Backend ausgeliefert | Accepted |
+| [0015](0015-frontend-dark-blue-theme.md) | Frontend Dark-Theme Blau/Lila | Accepted |
+| [0016](0016-reverse-proxy-traefik-docker-labels.md) | Reverse-Proxy via Traefik (Docker-Label-Provider) | Accepted |
+| [0017](0017-tls-https-ingress.md) | TLS/HTTPS für Ingress | Accepted |
+| [0018](0018-service-discovery-and-dns-mode.md) | Interne Service-Discovery und DNS-Modus | Accepted |
+| [0019](0019-git-config-repository-source.md) | Sollzustand aus Git-Config-Repository (JGit, HTTPS) | Accepted |
+| [0020](0020-backup-restore-s3-rclone.md) | Backup/Restore von Volumes in einen S3-Backup-Store (rclone) | Accepted |
+| [0021](0021-published-api-contract-openapi.md) | Publizierter, generierter API-Vertrag (OpenAPI) | Proposed |
 
 > **Accepted** ADRs sind bindend. **Proposed** ADRs sind Entwürfe und werden erst nach
 > expliziter Freigabe auf **Accepted** gesetzt (siehe [../standards/adr.md](../standards/adr.md)).
