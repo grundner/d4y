@@ -4,6 +4,9 @@ plugins {
     java
     id("org.springframework.boot") version "3.5.4"
     id("io.spring.dependency-management") version "1.1.7"
+    // ADR-0021: generierter, publizierter API-Vertrag (OpenAPI).
+    // Der Task `generateOpenApiDocs` startet die App kurz und schreibt die Spec (siehe openApi{} unten).
+    id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
 }
 
 group = "io.d4y"
@@ -33,6 +36,11 @@ dependencies {
 
     // Git-Anbindung des Config-Repositories (ADR-0019): pure-Java, kein git-Binary im Image.
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.10.0.202406032230-r")
+
+    // ADR-0021: OpenAPI-Vertrag der /api-Endpunkte aus den Controllern generieren.
+    // `-api`-Variante (nur /v3/api-docs[.yaml], keine Swagger-UI) — vermeidet Kollision mit dem
+    // statischen Frontend-Resource-Handling (ADR-0014).
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:2.8.6")
 
     // Native Netty-Transports für Unix-Domain-Sockets:
     //  - kqueue: macOS (Entwicklung), epoll: Linux (Produktion).
@@ -109,4 +117,16 @@ tasks.processResources {
         dependsOn(frontendExport)
         from(frontendOut) { into("static") }
     }
+}
+
+// ---- ADR-0021: API-Vertrag (OpenAPI) generieren ----
+// `./gradlew generateOpenApiDocs -PskipFrontend` startet die App kurz auf einem freien Port,
+// zieht die YAML-Spec von /v3/api-docs.yaml und schreibt sie nach docs/api/openapi.yaml.
+// Das File wird versioniert; CI erzeugt es bei Änderungen neu (Drift-Schutz).
+// Kein laufender Server für Konsumenten nötig — der gepinnte Vertrag liegt im Repo.
+openApi {
+    apiDocsUrl.set("http://localhost:8080/v3/api-docs.yaml")
+    outputDir.set(layout.projectDirectory.dir("docs/api"))
+    outputFileName.set("openapi.yaml")
+    waitTimeInSeconds.set(60)
 }

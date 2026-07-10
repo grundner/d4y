@@ -1,0 +1,485 @@
+openapi: 3.1.0
+info:
+  title: d4y API
+  description: REST-API der d4y Git-native Runtime Platform. Read-only bezüglich des
+    Sollzustands (ADR-0004); operative Aktionen sind transient (ADR-0013). Der Akteur
+    wird über den Header X-Actor übermittelt.
+  version: 0.1.0
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+paths:
+  /api/apps/{name}/stop:
+    post:
+      tags:
+      - app-actions-controller
+      operationId: stop
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: X-Actor
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Stop"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/HoldView"
+  /api/apps/{name}/restart:
+    post:
+      tags:
+      - app-actions-controller
+      operationId: restart
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: X-Actor
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  /api/apps/{name}/params:
+    post:
+      tags:
+      - app-actions-controller
+      operationId: params
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: X-Actor
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Params"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/HoldView"
+  /api/apps/{name}/hold:
+    post:
+      tags:
+      - app-actions-controller
+      operationId: setHold
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: X-Actor
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HoldReq"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/HoldView"
+    delete:
+      tags:
+      - app-actions-controller
+      operationId: releaseHold
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: X-Actor
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+  /api/apps/{name}/exec:
+    post:
+      tags:
+      - app-actions-controller
+      operationId: exec
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: X-Actor
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Exec"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ExecResult"
+  /api/status:
+    get:
+      tags:
+      - status-controller
+      operationId: status
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+  /api/holds:
+    get:
+      tags:
+      - hold-controller
+      operationId: holds
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HoldView"
+  /api/config:
+    get:
+      tags:
+      - config-controller
+      operationId: config
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ConfigView"
+  /api/config/files:
+    get:
+      tags:
+      - config-controller
+      operationId: files
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/FilesView"
+  /api/apps/{name}:
+    get:
+      tags:
+      - app-actions-controller
+      operationId: inspect
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ContainerDetails"
+  /api/apps/{name}/logs:
+    get:
+      tags:
+      - app-actions-controller
+      operationId: logs
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: tail
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  /api/activity:
+    get:
+      tags:
+      - activity-controller
+      operationId: activity
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 100
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityView"
+components:
+  schemas:
+    Stop:
+      type: object
+      properties:
+        durationSeconds:
+          type: integer
+          format: int64
+    HoldView:
+      type: object
+      properties:
+        app:
+          type: string
+        type:
+          type: string
+        remainingSeconds:
+          type: integer
+          format: int64
+        expiresAt:
+          type: string
+    Params:
+      type: object
+      properties:
+        env:
+          type: object
+          additionalProperties:
+            type: string
+        durationSeconds:
+          type: integer
+          format: int64
+    HoldReq:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - STOP
+          - TEMP_PARAM
+          - MANUAL
+        durationSeconds:
+          type: integer
+          format: int64
+    Exec:
+      type: object
+      properties:
+        cmd:
+          type: array
+          items:
+            type: string
+    ExecResult:
+      type: object
+      properties:
+        output:
+          type: string
+        exitCode:
+          type: integer
+          format: int32
+    AppStatus:
+      type: object
+      properties:
+        name:
+          type: string
+        serviceName:
+          type: string
+        desiredImage:
+          type: string
+        state:
+          type: string
+        running:
+          type: boolean
+        containerId:
+          type: string
+        hold:
+          $ref: "#/components/schemas/HoldInfo"
+        volumes:
+          type: array
+          items:
+            $ref: "#/components/schemas/VolumeInfo"
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/RouteInfo"
+        envKeys:
+          type: array
+          items:
+            type: string
+        backup:
+          type: boolean
+    ExtraContainer:
+      type: object
+      properties:
+        appName:
+          type: string
+        image:
+          type: string
+        containerId:
+          type: string
+        running:
+          type: boolean
+        volumes:
+          type: array
+          items:
+            $ref: "#/components/schemas/VolumeInfo"
+    HoldInfo:
+      type: object
+      properties:
+        type:
+          type: string
+        remainingSeconds:
+          type: integer
+          format: int64
+    RouteInfo:
+      type: object
+      properties:
+        host:
+          type: string
+        path:
+          type: string
+        port:
+          type: integer
+          format: int32
+    StatusResponse:
+      type: object
+      properties:
+        overall:
+          type: string
+        applications:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppStatus"
+        undeclared:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExtraContainer"
+    VolumeInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+    ConfigView:
+      type: object
+      properties:
+        mode:
+          type: string
+        source:
+          type: string
+        branch:
+          type: string
+        commit:
+          type: string
+        author:
+          type: string
+        message:
+          type: string
+        time:
+          type: string
+    FilesView:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            type: string
+    ContainerDetails:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        image:
+          type: string
+        state:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+        env:
+          type: array
+          items:
+            type: string
+    ActivityView:
+      type: object
+      properties:
+        time:
+          type: string
+        actor:
+          type: string
+        app:
+          type: string
+        action:
+          type: string
+        result:
+          type: string
+        drift:
+          type: boolean
+        hold:
+          type: string
