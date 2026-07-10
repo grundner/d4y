@@ -39,6 +39,7 @@ solcher Objekte. Beide Formen sind gleichwertig; die Aufteilung auf Dateien ist 
 | `volumes` | nein    | Liste Objekte | Deklarierte **Named Volumes** der App (siehe unten). Fehlt das Feld, hat die App keine Volumes. |
 | `routes`  | nein    | Liste Objekte | Deklarierter **externer Ingress** (Hostname → App, siehe unten). Fehlt das Feld, hat die App keine Routes. |
 | `env`     | nein    | Map           | Deklarierte **Umgebungsvariablen** (Key→Value), die dem Container gesetzt werden. Teil des Sollzustands (Änderung ⇒ Replace). |
+| `backup`  | nein    | Bool          | Aktiviert **Backup/Restore** der Named Volumes ([ADR-0020](../decisions/0020-backup-restore-s3-rclone.md)). Default `false` ⇒ App ist ephemer. |
 
 ### `volumes[]` — Named Volumes
 
@@ -99,6 +100,7 @@ routes:
 env:
   LOG_LEVEL: info
   TZ: Europe/Berlin
+backup: true
 ```
 
 > **env & operative Overrides:** Das deklarierte `env` ist Sollzustand. Die operative Aktion
@@ -165,6 +167,10 @@ Abgleich für ein Ziel vorübergehend aus (weder Replace noch StopAndRemove).
 | `d4y.config-repo.username` / `.token` | *(leer)* | HTTPS-Zugangsdaten für private Repos (Geheimnis). |
 | `d4y.desired-state.path`           | `./desired` | YAML-Verzeichnis im **lokalen** Fallback. |
 | `d4y.reconcile.interval-ms`        | `15000`     | Intervall des Reconciliation-Loops in Millisekunden. |
+| `d4y.backup.interval-ms`           | `300000`    | Intervall des periodischen Backups. |
+| `d4y.backup.s3.endpoint` / `.bucket` | *(leer)*  | S3-Backup-Store. Gesetzt ⇒ Backup aktiv (App opt-in via `backup: true`). |
+| `d4y.backup.s3.region` / `.provider` | `us-east-1` / `Other` | S3-Region und rclone-Provider (z. B. `Minio`, `AWS`). |
+| `d4y.backup.s3.access-key` / `.secret-key` | *(leer)* | S3-Zugangsdaten (Geheimnisse). |
 | `d4y.ingress.https-redirect`       | `true`      | HTTP→HTTPS-Redirect am Reverse Proxy. |
 | `d4y.ingress.internal-domain`      | `d4y.internal` | Interne DNS-Domain für Service-Discovery-Aliase (`<app>.<domain>`). |
 | `d4y.ingress.dns-mode`             | `extern`    | Öffentliche DNS-Verwaltung: `extern` (D4Y fasst DNS nicht an) oder `managed` (Platzhalter). |

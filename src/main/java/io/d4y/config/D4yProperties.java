@@ -18,7 +18,8 @@ public record D4yProperties(
         @DefaultValue Reconcile reconcile,
         @DefaultValue Operations operations,
         @DefaultValue Ingress ingress,
-        @DefaultValue ConfigRepo configRepo) {
+        @DefaultValue ConfigRepo configRepo,
+        @DefaultValue Backup backup) {
 
     /** Anbindung an die Docker-Engine (HTTP über Unix-Socket). */
     public record Docker(
@@ -113,6 +114,30 @@ public record D4yProperties(
 
         public boolean dnsChallenge() {
             return "dns".equalsIgnoreCase(challenge);
+        }
+    }
+
+    /**
+     * Backup/Restore der Volume-Daten in einen S3-kompatiblen Store (ADR-0020). Aktiv, sobald der
+     * S3-Store konfiguriert ist; je App per {@code backup: true} im Desired-State opt-in.
+     */
+    public record Backup(@DefaultValue("300000") long intervalMs, @DefaultValue S3 s3) {
+
+        public boolean storeConfigured() {
+            return s3 != null && s3.configured();
+        }
+    }
+
+    /** S3-kompatibler Backup-Store. {@code accessKey}/{@code secretKey} sind Geheimnisse. */
+    public record S3(@DefaultValue("") String endpoint,
+                     @DefaultValue("") String bucket,
+                     @DefaultValue("us-east-1") String region,
+                     @DefaultValue("Other") String provider,
+                     @DefaultValue("") String accessKey,
+                     @DefaultValue("") String secretKey) {
+
+        public boolean configured() {
+            return endpoint != null && !endpoint.isBlank() && bucket != null && !bucket.isBlank();
         }
     }
 }

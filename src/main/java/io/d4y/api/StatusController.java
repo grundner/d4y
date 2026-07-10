@@ -89,7 +89,8 @@ public class StatusController {
                     holdInfo,
                     toVolumeInfos(app.volumes()),
                     toRouteInfos(app.routes()),
-                    app.env().keySet().stream().sorted().toList()));
+                    app.env().keySet().stream().sorted().toList(),
+                    app.backup()));
         }
 
         List<ExtraContainer> undeclared = new ArrayList<>();

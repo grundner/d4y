@@ -8,13 +8,12 @@ import java.util.Objects;
 /**
  * Engine-neutrale Beschreibung eines zu startenden Containers.
  *
- * <p>Die Label-Konvention ({@link D4yLabels}) setzt der jeweilige Backend-Adapter.
- * {@code env} trägt optionale (temporäre) Umgebungs-Overrides für operative Aktionen;
- * {@code volumes} die deklarierten Named Volumes ({@link VolumeMapping}), {@code routes} den
- * deklarierten externen Ingress ({@link Route}).
+ * <p>{@code env} trägt deklarierte + ggf. transient überschriebene Umgebungsvariablen,
+ * {@code volumes} die Named Volumes, {@code routes} den Ingress und {@code backup} das
+ * Backup-Opt-in (steuert Restore-on-new).
  */
 public record ContainerSpec(String appName, ImageRef image, Map<String, String> env,
-                            List<VolumeMapping> volumes, List<Route> routes) {
+                            List<VolumeMapping> volumes, List<Route> routes, boolean backup) {
 
     public ContainerSpec {
         Objects.requireNonNull(appName, "appName");
@@ -24,14 +23,20 @@ public record ContainerSpec(String appName, ImageRef image, Map<String, String> 
         routes = routes == null ? List.of() : List.copyOf(routes);
     }
 
-    /** Bequemer Konstruktor ohne Routes. */
+    /** Bequemer Konstruktor ohne Routes/Backup. */
     public ContainerSpec(String appName, ImageRef image, Map<String, String> env, List<VolumeMapping> volumes) {
-        this(appName, image, env, volumes, List.of());
+        this(appName, image, env, volumes, List.of(), false);
+    }
+
+    /** Bequemer Konstruktor ohne Backup. */
+    public ContainerSpec(String appName, ImageRef image, Map<String, String> env,
+                         List<VolumeMapping> volumes, List<Route> routes) {
+        this(appName, image, env, volumes, routes, false);
     }
 
     public static ContainerSpec forApplication(Application application) {
         return new ContainerSpec(application.name(), application.image(), application.env(),
-                application.volumes(), application.routes());
+                application.volumes(), application.routes(), application.backup());
     }
 
     /**
@@ -44,6 +49,6 @@ public record ContainerSpec(String appName, ImageRef image, Map<String, String> 
             merged.putAll(override);
         }
         return new ContainerSpec(application.name(), application.image(), merged,
-                application.volumes(), application.routes());
+                application.volumes(), application.routes(), application.backup());
     }
 }

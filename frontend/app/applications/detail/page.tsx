@@ -348,7 +348,19 @@ function AppDetailInner() {
       {tab === "logs" && <LogsPanel name={name} />}
       {tab === "exec" && <ExecPanel name={name} />}
       {tab === "volumes" && (
-        cur.volumes.length === 0 ? (
+        <>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">Backup:</Typography>
+            {cur.backup ? (
+              <Chip size="small" label="aktiv" sx={{ bgcolor: "rgba(95,208,168,0.16)", color: "#5fd0a8", fontWeight: 500 }} />
+            ) : (
+              <Chip size="small" label="ephemer (kein Backup)" sx={{ bgcolor: "rgba(139,147,161,0.15)", color: "#c7cdd6" }} />
+            )}
+            <Typography variant="caption" color="text.secondary">
+              {cur.backup ? "Daten werden in den Backup-Store gesichert; Restore bei leerem Volume." : "Ohne Backup gehen die Daten bei Redeploy/Serververlust verloren."}
+            </Typography>
+          </Stack>
+          {cur.volumes.length === 0 ? (
           <EmptyState text="Diese App deklariert keine Volumes. Named Volumes werden im Config-Repository (Git) deklariert." />
         ) : (
           <>
@@ -379,7 +391,8 @@ function AppDetailInner() {
               Config-Repository (Git); der Inhalt ist nicht Teil des Sollzustands.
             </Typography>
           </>
-        )
+        )}
+        </>
       )}
       {tab === "routes" && (
         cur.routes.length === 0 ? (

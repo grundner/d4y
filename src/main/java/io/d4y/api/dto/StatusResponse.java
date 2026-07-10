@@ -20,6 +20,7 @@ public record StatusResponse(String overall,
      * @param volumes deklarierte Named Volumes der App (Soll)
      * @param routes  deklarierte Routes (externer Ingress, Soll)
      * @param envKeys Schlüssel der deklarierten Umgebungsvariablen (ohne Werte — Geheimnisschutz)
+     * @param backup  {@code true}, wenn für die App ein Backup deklariert ist (ADR-0020)
      */
     public record AppStatus(String name,
                             String serviceName,
@@ -30,7 +31,8 @@ public record StatusResponse(String overall,
                             HoldInfo hold,
                             List<VolumeInfo> volumes,
                             List<RouteInfo> routes,
-                            List<String> envKeys) {
+                            List<String> envKeys,
+                            boolean backup) {
     }
 
     /** Aktiver Hold in der Statusanzeige. */

@@ -25,6 +25,15 @@ class DockerContainerBackendTest {
 
     private final ObjectMapper json = new ObjectMapper();
 
+    /** VolumeBackup-Stub: deaktiviert (kein Restore/Backup im Test). */
+    private io.d4y.port.VolumeBackup noBackup() {
+        return new io.d4y.port.VolumeBackup() {
+            @Override public boolean enabled() { return false; }
+            @Override public void backup(String appName, String volumeName) { }
+            @Override public void restore(String appName, String volumeName) { }
+        };
+    }
+
     /** Edge-Proxy-Stub: ensureNetwork ohne echten Docker-Aufruf. */
     private DockerEdgeProxy edge(DockerHttpClient client) {
         return new DockerEdgeProxy(client, json, TestFixtures.props()) {
@@ -42,6 +51,16 @@ class DockerContainerBackendTest {
 
         CapturingClient() {
             super(TestFixtures.props());
+        }
+
+        @Override
+        public Response get(String path) {
+            paths.add(path);
+            // Volume existiert noch nicht → wird angelegt (volumeExists → false).
+            if (path.startsWith("/volumes/")) {
+                return new Response(404, "");
+            }
+            return new Response(200, "");
         }
 
         @Override
@@ -69,7 +88,7 @@ class DockerContainerBackendTest {
     @Test
     void createPayloadMountsNamedVolumeAndEnsuresVolume() throws Exception {
         CapturingClient client = new CapturingClient();
-        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client));
+        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client), noBackup());
 
         ContainerSpec spec = new ContainerSpec("nginx", ImageRef.of("nginx:1.27-alpine"), Map.of(),
                 List.of(new VolumeMapping("html", "/usr/share/nginx/html")));
@@ -98,7 +117,7 @@ class DockerContainerBackendTest {
     @Test
     void createPayloadStampsEnvAndMergesOverride() throws Exception {
         CapturingClient client = new CapturingClient();
-        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client));
+        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client), noBackup());
 
         Application app = new Application("web", ImageRef.of("nginx:1.27-alpine"), List.of(), List.of(),
                 Map.of("LOG_LEVEL", "info"));
@@ -118,7 +137,7 @@ class DockerContainerBackendTest {
     @Test
     void createPayloadHasNoHostConfigWithoutVolumes() throws Exception {
         CapturingClient client = new CapturingClient();
-        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client));
+        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client), noBackup());
 
         backend.run(ContainerSpec.forApplication(
                 new io.d4y.domain.model.Application("nginx", ImageRef.of("nginx:1.27-alpine"))));
@@ -134,7 +153,7 @@ class DockerContainerBackendTest {
     @Test
     void createPayloadAddsTraefikLabelsAndNetworkForRoutes() throws Exception {
         CapturingClient client = new CapturingClient();
-        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client));
+        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client), noBackup());
 
         ContainerSpec spec = new ContainerSpec("web", ImageRef.of("nginx:1.27-alpine"), Map.of(),
                 List.of(), List.of(new Route("web.example.com", "/", 8080)));

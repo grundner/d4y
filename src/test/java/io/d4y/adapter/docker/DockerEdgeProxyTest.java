@@ -20,7 +20,9 @@ class DockerEdgeProxyTest {
                         new D4yProperties.HoldConfig(900, 3600),
                         new D4yProperties.LogsConfig(200)),
                 ingress,
-                new D4yProperties.ConfigRepo("", "main", "", "./.d4y-config", 30000, "", ""));
+                new D4yProperties.ConfigRepo("", "main", "", "./.d4y-config", 30000, "", ""),
+                new D4yProperties.Backup(300000,
+                        new D4yProperties.S3("", "", "us-east-1", "Other", "", "")));
         return new DockerEdgeProxy(new DockerHttpClient(props), new ObjectMapper(), props);
     }
 

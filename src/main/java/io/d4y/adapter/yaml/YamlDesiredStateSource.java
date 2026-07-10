@@ -94,8 +94,10 @@ public class YamlDesiredStateSource implements DesiredStateSource {
         if (name == null || image == null || name.asText().isBlank() || image.asText().isBlank()) {
             throw new IllegalArgumentException("Datei " + file + ": 'name' und 'image' sind erforderlich");
         }
+        JsonNode backup = node.get("backup");
         return new Application(name.asText(), ImageRef.of(image.asText()),
-                toVolumes(node, file), toRoutes(node, file), toEnv(node, file));
+                toVolumes(node, file), toRoutes(node, file), toEnv(node, file),
+                backup != null && backup.asBoolean(false));
     }
 
     private Map<String, String> toEnv(JsonNode node, Path file) {

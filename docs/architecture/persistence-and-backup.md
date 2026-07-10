@@ -69,3 +69,14 @@ Start der App ein Restore erfolgt.
 
 > Konkrete Backup-Cadence, Protokolle, Snapshot-Konsistenz (z. B. App-Quiescing) und Tooling sind
 > **Implementierungsentscheidungen** und werden bei der Umsetzung per ADR festgelegt.
+
+## Umsetzungsstand ([ADR-0020](../decisions/0020-backup-restore-s3-rclone.md))
+
+- **Backup-Store:** S3-kompatibel (`d4y.backup.s3.*`; lokal via MinIO). Opt-in pro App mit
+  `backup: true` im [Desired-State-YAML](desired-state-yaml.md).
+- **Mechanismus:** kurzlebige **rclone**-Helfer-Container synchronisieren das Named Volume mit
+  `<store>/<app>/<vol>` — Backup (Volume→Store) periodisch (`d4y.backup.interval-ms`), Restore
+  (Store→Volume) **nur bei neu angelegtem Volume** vor dem App-Start. Die Daten laufen nie durch
+  das Backend; S3-Credentials nur als Container-Env.
+- **Offen:** konsistente Snapshots/App-Quiescing (aktuell crash-consistent), mehrere/deklarative
+  Backup-Stores, Restore-Historie/Point-in-Time.

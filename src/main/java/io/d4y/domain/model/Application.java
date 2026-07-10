@@ -8,11 +8,11 @@ import java.util.Objects;
  * Eine deklarativ beschriebene Anwendung, die als Container laufen soll.
  *
  * <p>Aktuell: Name + Image + optionale <b>Named Volumes</b> ({@link VolumeMapping}), <b>Routes</b>
- * ({@link Route}) und deklarierte <b>Umgebungsvariablen</b> ({@code env}). Backup-Policy folgt in
- * einer späteren Ausbaustufe.
+ * ({@link Route}), deklarierte <b>Umgebungsvariablen</b> ({@code env}) und ein <b>Backup</b>-Opt-in
+ * ({@code backup}). Ohne Backup sind die Daten der App ephemer.
  */
 public record Application(String name, ImageRef image, List<VolumeMapping> volumes,
-                          List<Route> routes, Map<String, String> env) {
+                          List<Route> routes, Map<String, String> env, boolean backup) {
 
     public Application {
         Objects.requireNonNull(name, "name");
@@ -34,18 +34,24 @@ public record Application(String name, ImageRef image, List<VolumeMapping> volum
         env = env == null ? Map.of() : Map.copyOf(env);
     }
 
-    /** Bequemer Konstruktor mit Volumes und Routes, ohne deklariertes env. */
+    /** Bequemer Konstruktor mit Volumes, Routes und env, ohne Backup. */
+    public Application(String name, ImageRef image, List<VolumeMapping> volumes, List<Route> routes,
+                       Map<String, String> env) {
+        this(name, image, volumes, routes, env, false);
+    }
+
+    /** Bequemer Konstruktor mit Volumes und Routes. */
     public Application(String name, ImageRef image, List<VolumeMapping> volumes, List<Route> routes) {
-        this(name, image, volumes, routes, Map.of());
+        this(name, image, volumes, routes, Map.of(), false);
     }
 
-    /** Bequemer Konstruktor mit Volumes, ohne Routes und env. */
+    /** Bequemer Konstruktor mit Volumes. */
     public Application(String name, ImageRef image, List<VolumeMapping> volumes) {
-        this(name, image, volumes, List.of(), Map.of());
+        this(name, image, volumes, List.of(), Map.of(), false);
     }
 
-    /** Bequemer Konstruktor für Apps ohne Volumes, Routes und env. */
+    /** Bequemer Konstruktor für Apps ohne Volumes/Routes/env/Backup. */
     public Application(String name, ImageRef image) {
-        this(name, image, List.of(), List.of(), Map.of());
+        this(name, image, List.of(), List.of(), Map.of(), false);
     }
 }

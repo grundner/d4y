@@ -67,6 +67,21 @@ class YamlDesiredStateSourceTest {
     }
 
     @Test
+    void parsesBackupFlag(@TempDir Path dir) throws IOException {
+        Files.writeString(dir.resolve("web.yaml"), "name: web\nimage: nginx:1.27-alpine\nbackup: true\n");
+        Files.writeString(dir.resolve("cache.yml"), "name: cache\nimage: redis:7\n");
+
+        DesiredState state = new YamlDesiredStateSource(propsFor(dir)).load();
+
+        assertThat(state.applications())
+                .filteredOn(a -> a.name().equals("web")).singleElement()
+                .satisfies(a -> assertThat(a.backup()).isTrue());
+        assertThat(state.applications())
+                .filteredOn(a -> a.name().equals("cache")).singleElement()
+                .satisfies(a -> assertThat(a.backup()).isFalse());
+    }
+
+    @Test
     void parsesEnv(@TempDir Path dir) throws IOException {
         Files.writeString(dir.resolve("web.yaml"),
                 "name: web\nimage: nginx:1.27-alpine\nenv:\n  LOG_LEVEL: debug\n  PORT: \"8080\"\n");

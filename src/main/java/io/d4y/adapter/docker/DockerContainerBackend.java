@@ -40,11 +40,14 @@ public class DockerContainerBackend implements ContainerBackend {
     private final DockerHttpClient docker;
     private final ObjectMapper json;
     private final DockerEdgeProxy edgeProxy;
+    private final io.d4y.port.VolumeBackup volumeBackup;
 
-    public DockerContainerBackend(DockerHttpClient docker, ObjectMapper json, DockerEdgeProxy edgeProxy) {
+    public DockerContainerBackend(DockerHttpClient docker, ObjectMapper json, DockerEdgeProxy edgeProxy,
+                                  io.d4y.port.VolumeBackup volumeBackup) {
         this.docker = docker;
         this.json = json;
         this.edgeProxy = edgeProxy;
+        this.volumeBackup = volumeBackup;
     }
 
     @Override
@@ -79,13 +82,14 @@ public class DockerContainerBackend implements ContainerBackend {
     }
 
     /**
-     * Stellt ein von D4Y verwaltetes Named Volume sicher (idempotent: gleicher Name → vorhandenes
-     * Volume). Der Engine-Volume-Name wird als {@code d4y_<app>_<name>} vergeben.
+     * Stellt ein von D4Y verwaltetes Named Volume sicher.
      *
-     * @return der vergebene Engine-Volume-Name
+     * @return {@code true}, wenn das Volume <b>neu</b> angelegt wurde (vorher nicht existent)
      */
-    private String ensureVolume(String appName, VolumeMapping volume) {
-        String volName = "d4y_" + appName + "_" + volume.name();
+    private boolean ensureVolume(String volName, String appName) {
+        if (volumeExists(volName)) {
+            return false;
+        }
         Map<String, Object> labels = new LinkedHashMap<>();
         labels.put(D4yLabels.MANAGED, "true");
         labels.put(D4yLabels.APP, appName);
@@ -94,7 +98,11 @@ public class DockerContainerBackend implements ContainerBackend {
         body.put("Labels", labels);
         DockerHttpClient.Response res = docker.post("/volumes/create", toJson(body));
         require(res, "Volume sicherstellen: " + volName);
-        return volName;
+        return true;
+    }
+
+    private boolean volumeExists(String volName) {
+        return docker.get("/volumes/" + enc(volName)).status() == 200;
     }
 
     /**
@@ -164,7 +172,12 @@ public class DockerContainerBackend implements ContainerBackend {
         if (!spec.volumes().isEmpty()) {
             List<Map<String, Object>> mounts = new ArrayList<>();
             for (VolumeMapping v : spec.volumes()) {
-                String volName = ensureVolume(spec.appName(), v);
+                String volName = "d4y_" + spec.appName() + "_" + v.name();
+                boolean created = ensureVolume(volName, spec.appName());
+                // Restore nur bei neuem/leerem Volume und aktivem Backup (ADR-0020) — vor App-Start.
+                if (created && spec.backup() && volumeBackup.enabled()) {
+                    volumeBackup.restore(spec.appName(), v.name());
+                }
                 Map<String, Object> mount = new LinkedHashMap<>();
                 mount.put("Type", "volume");
                 mount.put("Source", volName);

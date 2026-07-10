@@ -32,6 +32,8 @@ export interface StatusApp {
   routes: StatusRoute[];
   /** Schlüssel der deklarierten Umgebungsvariablen (ohne Werte). */
   envKeys: string[];
+  /** true, wenn für die App ein Backup deklariert ist. */
+  backup: boolean;
 }
 
 export interface StatusUndeclared {
