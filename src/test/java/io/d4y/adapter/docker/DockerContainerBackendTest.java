@@ -162,17 +162,40 @@ class DockerContainerBackendTest {
 
         JsonNode createBody = json.readTree(client.bodies.get("/containers/create"));
         JsonNode labels = createBody.path("Labels");
-        assertThat(labels.path("d4y.routes").asText()).isEqualTo("web.example.com|/|8080");
+        // ADR-0028: Fixture ohne ACME ⇒ TLS-Default aus, Route auf 'web' (reines HTTP).
+        assertThat(labels.path("d4y.routes").asText()).isEqualTo("web.example.com|/|8080|");
         assertThat(labels.path("traefik.enable").asText()).isEqualTo("true");
         assertThat(labels.path("traefik.http.routers.d4y-web-0.rule").asText())
                 .isEqualTo("Host(`web.example.com`)");
         assertThat(labels.path("traefik.http.routers.d4y-web-0.entrypoints").asText())
-                .isEqualTo("websecure");
-        assertThat(labels.path("traefik.http.routers.d4y-web-0.tls").asText()).isEqualTo("true");
+                .isEqualTo("web");
+        assertThat(labels.path("traefik.http.routers.d4y-web-0.tls").asText()).isEmpty();
         assertThat(labels.path("traefik.http.services.d4y-web-0.loadbalancer.server.port").asText())
                 .isEqualTo("8080");
         // Ziel-Alias im d4y-Netz = App-Name.
         assertThat(createBody.path("NetworkingConfig").path("EndpointsConfig").path("d4y")
                 .path("Aliases").get(0).asText()).isEqualTo("web");
+    }
+
+    @Test
+    void perRouteTlsTrueUsesWebsecureAndTls() throws Exception {
+        CapturingClient client = new CapturingClient();
+        DockerContainerBackend backend = new DockerContainerBackend(client, json, edge(client), noBackup());
+
+        // Zwei Routen: eine explizit HTTPS (tls=true), eine explizit HTTP (tls=false) — ADR-0028.
+        ContainerSpec spec = new ContainerSpec("web", ImageRef.of("nginx:1.27-alpine"), Map.of(),
+                List.of(), List.of(
+                        new Route("secure.example.com", "/", 8080, Boolean.TRUE),
+                        new Route("plain.example.com", "/", 8080, Boolean.FALSE)));
+
+        backend.run(spec);
+
+        JsonNode labels = json.readTree(client.bodies.get("/containers/create")).path("Labels");
+        assertThat(labels.path("traefik.http.routers.d4y-web-0.entrypoints").asText())
+                .isEqualTo("websecure");
+        assertThat(labels.path("traefik.http.routers.d4y-web-0.tls").asText()).isEqualTo("true");
+        assertThat(labels.path("traefik.http.routers.d4y-web-1.entrypoints").asText())
+                .isEqualTo("web");
+        assertThat(labels.path("traefik.http.routers.d4y-web-1.tls").asText()).isEmpty();
     }
 }

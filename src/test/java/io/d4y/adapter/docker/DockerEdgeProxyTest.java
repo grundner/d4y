@@ -11,8 +11,10 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Prüft die Traefik-CLI-Argumente je TLS-Konfiguration (ohne echte Engine). */
+/** Prüft Entrypoint/TLS-Ableitung, Traefik-Argumente und die Selbst-Route (ohne echte Engine). */
 class DockerEdgeProxyTest {
+
+    private static final String DYN = "/var/lib/d4y/traefik-dynamic";
 
     private static DockerEdgeProxy proxy(D4yProperties.Ingress ingress) {
         D4yProperties props = new D4yProperties(
@@ -31,16 +33,22 @@ class DockerEdgeProxyTest {
         return new DockerEdgeProxy(new DockerHttpClient(props), new ObjectMapper(), props);
     }
 
-    private static D4yProperties.Ingress ingress(boolean redirect, D4yProperties.Acme acme) {
-        return new D4yProperties.Ingress(redirect, "d4y.internal", "extern",
-                new D4yProperties.Self("", "http://host.docker.internal:8080", "/var/lib/d4y/traefik-dynamic"),
-                new D4yProperties.Tls(acme));
+    private static D4yProperties.Ingress ingress(D4yProperties.Acme acme) {
+        return ingress(acme, null, defaultSelf());
     }
 
-    private static D4yProperties.Ingress ingressWithSelf(String host, String dynamicDir, D4yProperties.Acme acme) {
-        return new D4yProperties.Ingress(true, "d4y.internal", "extern",
-                new D4yProperties.Self(host, "http://host.docker.internal:8080", dynamicDir),
-                new D4yProperties.Tls(acme));
+    private static D4yProperties.Ingress ingress(D4yProperties.Acme acme, Boolean tlsDefault,
+                                                 D4yProperties.Self self) {
+        return new D4yProperties.Ingress("d4y.internal", "extern",
+                self, new D4yProperties.Tls(tlsDefault, acme));
+    }
+
+    private static D4yProperties.Self defaultSelf() {
+        return new D4yProperties.Self("", "http://host.docker.internal:8080", DYN, null);
+    }
+
+    private static D4yProperties.Self self(String host, String dynamicDir, Boolean tls) {
+        return new D4yProperties.Self(host, "http://host.docker.internal:8080", dynamicDir, tls);
     }
 
     private static D4yProperties.Acme acme(String email, String challenge, String dnsProvider) {
@@ -48,28 +56,44 @@ class DockerEdgeProxyTest {
     }
 
     @Test
-    void selfSignedHasHttpsEntrypointAndRedirectNoResolver() {
-        DockerEdgeProxy p = proxy(ingress(true, acme("", "http", "")));
+    void withoutAcmeDefaultTlsIsOffAndNoResolver() {
+        DockerEdgeProxy p = proxy(ingress(acme("", "http", "")));
 
-        assertThat(p.traefikArgs())
-                .contains("--entrypoints.websecure.address=:443",
-                        "--entrypoints.web.http.redirections.entrypoint.to=websecure")
-                .noneMatch(a -> a.contains("acme"));
-        assertThat(p.routerEntrypoints()).isEqualTo("websecure");
+        assertThat(p.defaultTlsEnabled()).isFalse();
+        assertThat(p.certResolver()).isNull();
+        assertThat(p.entrypointForTls(true)).isEqualTo("websecure");
+        assertThat(p.entrypointForTls(false)).isEqualTo("web");
+    }
+
+    @Test
+    void acmeMakesTlsDefaultOnAndResolverLe() {
+        DockerEdgeProxy p = proxy(ingress(acme("ops@example.com", "http", "")));
+
+        assertThat(p.defaultTlsEnabled()).isTrue();
+        assertThat(p.certResolver()).isEqualTo("le");
+    }
+
+    @Test
+    void explicitTlsDefaultOverridesAcmeDerivation() {
+        // Ohne ACME, aber TLS-Default explizit an ⇒ self-signed HTTPS als Default.
+        DockerEdgeProxy p = proxy(ingress(acme("", "http", ""), Boolean.TRUE, defaultSelf()));
+
+        assertThat(p.defaultTlsEnabled()).isTrue();
         assertThat(p.certResolver()).isNull();
     }
 
     @Test
-    void redirectOffServesBothEntrypoints() {
-        DockerEdgeProxy p = proxy(ingress(false, acme("", "http", "")));
+    void noGlobalHttpsRedirectInTraefikArgs() {
+        DockerEdgeProxy p = proxy(ingress(acme("ops@example.com", "http", "")));
 
-        assertThat(p.traefikArgs()).noneMatch(a -> a.contains("redirections"));
-        assertThat(p.routerEntrypoints()).isEqualTo("web,websecure");
+        assertThat(p.traefikArgs())
+                .contains("--entrypoints.web.address=:80", "--entrypoints.websecure.address=:443")
+                .noneMatch(a -> a.contains("redirections"));
     }
 
     @Test
     void acmeHttpChallengeAddsResolver() {
-        DockerEdgeProxy p = proxy(ingress(true, acme("ops@example.com", "http", "")));
+        DockerEdgeProxy p = proxy(ingress(acme("ops@example.com", "http", "")));
 
         assertThat(p.traefikArgs())
                 .contains("--certificatesresolvers.le.acme.email=ops@example.com",
@@ -79,60 +103,75 @@ class DockerEdgeProxyTest {
     }
 
     @Test
+    void acmeDnsChallengeAddsProvider() {
+        DockerEdgeProxy p = proxy(ingress(acme("ops@example.com", "dns", "cloudflare")));
+
+        assertThat(p.traefikArgs())
+                .contains("--certificatesresolvers.le.acme.dnschallenge=true",
+                        "--certificatesresolvers.le.acme.dnschallenge.provider=cloudflare")
+                .noneMatch(a -> a.contains("httpchallenge"));
+    }
+
+    @Test
     void networkAliasesIncludeAppNameAndInternalFqdn() {
-        DockerEdgeProxy p = proxy(ingress(true, acme("", "http", "")));
+        DockerEdgeProxy p = proxy(ingress(acme("", "http", "")));
 
         assertThat(p.networkAliases("nginx")).containsExactly("nginx", "nginx.d4y.internal");
     }
 
     @Test
     void selfDisabledHasNoFileProvider() {
-        DockerEdgeProxy p = proxy(ingress(true, acme("", "http", "")));
+        DockerEdgeProxy p = proxy(ingress(acme("", "http", "")));
 
         assertThat(p.traefikArgs()).noneMatch(a -> a.contains("providers.file"));
     }
 
     @Test
     void selfEnabledAddsFileProvider() {
-        DockerEdgeProxy p = proxy(ingressWithSelf("d4y.example.com", "/var/lib/d4y/traefik-dynamic",
-                acme("ops@example.com", "http", "")));
+        DockerEdgeProxy p = proxy(ingress(acme("ops@example.com", "http", ""), null,
+                self("d4y.example.com", DYN, null)));
 
         assertThat(p.traefikArgs())
                 .contains("--providers.file.directory=/dynamic", "--providers.file.watch=true");
     }
 
     @Test
-    void writeSelfRouteWritesDynamicConfig(@TempDir Path dir) throws Exception {
-        DockerEdgeProxy p = proxy(ingressWithSelf("d4y.example.com", dir.toString(),
-                acme("ops@example.com", "http", "")));
+    void writeSelfRouteHttpsWithAcme(@TempDir Path dir) throws Exception {
+        DockerEdgeProxy p = proxy(ingress(acme("ops@example.com", "http", ""), null,
+                self("d4y.example.com", dir.toString(), null)));
 
         p.writeSelfRoute();
 
-        Path file = dir.resolve("d4y.json");
-        assertThat(file).exists();
-        String content = Files.readString(file);
+        String content = Files.readString(dir.resolve("d4y.json"));
         assertThat(content)
                 .contains("Host(`d4y.example.com`)")
                 .contains("http://host.docker.internal:8080")
+                .contains("websecure")
                 .contains("\"certResolver\" : \"le\"");
     }
 
     @Test
+    void writeSelfRouteHttpWithoutAcme(@TempDir Path dir) throws Exception {
+        // Kein ACME ⇒ HTTP-only: Selbst-Route auf 'web', ohne tls-Key (ADR-0028).
+        DockerEdgeProxy p = proxy(ingress(acme("", "http", ""), null,
+                self("d4y.local", dir.toString(), null)));
+
+        p.writeSelfRoute();
+
+        String content = Files.readString(dir.resolve("d4y.json"));
+        assertThat(content)
+                .contains("Host(`d4y.local`)")
+                .contains("\"web\"")
+                .doesNotContain("websecure")
+                .doesNotContain("tls");
+    }
+
+    @Test
     void writeSelfRouteNoopWhenHostBlank(@TempDir Path dir) {
-        DockerEdgeProxy p = proxy(ingressWithSelf("", dir.toString(), acme("", "http", "")));
+        DockerEdgeProxy p = proxy(ingress(acme("", "http", ""), null, self("", dir.toString(), null)));
 
         p.writeSelfRoute();
 
         assertThat(dir.resolve("d4y.json")).doesNotExist();
-    }
-
-    @Test
-    void acmeDnsChallengeAddsProvider() {
-        DockerEdgeProxy p = proxy(ingress(true, acme("ops@example.com", "dns", "cloudflare")));
-
-        assertThat(p.traefikArgs())
-                .contains("--certificatesresolvers.le.acme.dnschallenge=true",
-                        "--certificatesresolvers.le.acme.dnschallenge.provider=cloudflare")
-                .noneMatch(a -> a.contains("httpchallenge"));
     }
 }

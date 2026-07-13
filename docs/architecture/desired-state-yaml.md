@@ -72,20 +72,23 @@ Regeln:
 Jeder Eintrag ordnet einen **Hostnamen** (und ggf. Pfad) der App zu — externer Ingress
 ([route](../domain/route.md), [ADR-0010](../decisions/0010-dns-ingress-service-discovery.md)).
 
-| Feld   | Pflicht | Typ    | Bedeutung |
-| ------ | ------- | ------ | --------- |
-| `host` | ja      | String | Hostname, unter dem die App erreichbar sein soll (z. B. `web.example.com`); ohne Schema/Slash. |
-| `path` | nein    | String | Pfad-Präfix; muss mit `/` beginnen. Default `/`. |
-| `port` | nein    | Zahl   | Ziel-Port im Container, an den der Reverse Proxy weiterreicht. Default `80`. |
+| Feld   | Pflicht | Typ     | Bedeutung |
+| ------ | ------- | ------- | --------- |
+| `host` | ja      | String  | Hostname, unter dem die App erreichbar sein soll (z. B. `web.example.com`); ohne Schema/Slash. |
+| `path` | nein    | String  | Pfad-Präfix; muss mit `/` beginnen. Default `/`. |
+| `port` | nein    | Zahl    | Ziel-Port im Container, an den der Reverse Proxy weiterreicht. Default `80`. |
+| `tls`  | nein    | Boolean | TLS für diese Route ([ADR-0028](../decisions/0028-per-route-tls-and-http-mode.md)): `true` = HTTPS (`websecure`), `false` = reines HTTP (`web`). Ohne Angabe gilt der globale Default (aus ACME abgeleitet). |
 
-> **Umsetzungsstand ([ADR-0016](../decisions/0016-reverse-proxy-traefik-docker-labels.md)):** Routes
-> werden über einen von D4Y verwalteten **Traefik**-Reverse-Proxy angewandt (Docker-Provider,
-> HTTP `:80`). D4Y rendert je Route Traefik-Router/Service-Labels auf den App-Container und hängt
-> alle verwalteten Container an ein gemeinsames `d4y`-Netz. Weil diese Labels beim Erstellen gebacken
-> werden, ist eine geänderte Route-Deklaration **Drift** und führt zu einem Container-**Replace**.
-> **HTTPS/TLS** ist aktiv ([ADR-0017](../decisions/0017-tls-https-ingress.md)): Routes werden auf
-> `websecure :443` mit TLS bedient (Default self-signed, ACME opt-in). Die DNS-Modi (managed/extern)
-> folgen später — siehe [networking-and-dns](networking-and-dns.md).
+> **Umsetzungsstand ([ADR-0016](../decisions/0016-reverse-proxy-traefik-docker-labels.md),
+> [ADR-0028](../decisions/0028-per-route-tls-and-http-mode.md)):** Routes werden über einen von D4Y
+> verwalteten **Traefik**-Reverse-Proxy angewandt (Docker-Provider). D4Y rendert je Route
+> Traefik-Router/Service-Labels auf den App-Container und hängt alle verwalteten Container an ein
+> gemeinsames `d4y`-Netz. Weil diese Labels beim Erstellen gebacken werden, ist eine geänderte
+> Route-Deklaration (inkl. `tls`) **Drift** und führt zu einem Container-**Replace**.
+> **TLS ist pro Route schaltbar:** `tls: true` → `websecure :443` mit TLS (bei ACME `certresolver=le`,
+> sonst self-signed), `tls: false` → `web :80` reines HTTP. Ohne ACME-Mail ist der Default HTTP-only
+> (VM/Intranet ohne öffentliche IP). Es gibt **keinen** automatischen HTTP→HTTPS-Redirect. Die
+> DNS-Modi (managed/extern) folgen später — siehe [networking-and-dns](networking-and-dns.md).
 
 ## Beispiel
 
@@ -100,10 +103,11 @@ volumes:
   - name: cache
     path: /var/cache/nginx
 routes:
-  - host: nginx.example.com
+  - host: nginx.example.com        # TLS = globaler Default
   - host: api.example.com
     path: /v1
     port: 8080
+    tls: true                      # diese Route explizit HTTPS
 env:
   LOG_LEVEL: info
   TZ: Europe/Berlin

@@ -114,11 +114,13 @@ public class DockerContainerBackend implements ContainerBackend {
             return;
         }
         labels.put("traefik.enable", "true");
-        String entrypoints = edgeProxy.routerEntrypoints();
+        // ADR-0028: TLS pro Route — websecure+TLS oder reines HTTP (web). Default aus ACME abgeleitet.
+        boolean tlsDefault = edgeProxy.defaultTlsEnabled();
         String certResolver = edgeProxy.certResolver();
         String base = sanitize(spec.appName());
         int i = 0;
         for (Route r : spec.routes()) {
+            boolean tls = r.tlsEnabled(tlsDefault);
             String rn = "d4y-" + base + "-" + i;
             String router = "traefik.http.routers." + rn + ".";
             String rule = "Host(`" + r.host() + "`)";
@@ -126,11 +128,13 @@ public class DockerContainerBackend implements ContainerBackend {
                 rule += " && PathPrefix(`" + r.path() + "`)";
             }
             labels.put(router + "rule", rule);
-            labels.put(router + "entrypoints", entrypoints);
+            labels.put(router + "entrypoints", edgeProxy.entrypointForTls(tls));
             labels.put(router + "service", rn);
-            labels.put(router + "tls", "true");
-            if (certResolver != null) {
-                labels.put(router + "tls.certresolver", certResolver);
+            if (tls) {
+                labels.put(router + "tls", "true");
+                if (certResolver != null) {
+                    labels.put(router + "tls.certresolver", certResolver);
+                }
             }
             labels.put("traefik.http.services." + rn + ".loadbalancer.server.port", String.valueOf(r.port()));
             i++;

@@ -5,8 +5,9 @@
 #   curl -fsSL https://grundner.github.io/d4y/install.sh | sh
 #
 # Konfiguration über Umgebungsvariablen:
-#   D4Y_HOST        (Pflicht)   öffentlicher Hostname von d4y (DNS A-Record → dieser Host)
-#   D4Y_ACME_EMAIL  (Pflicht)   E-Mail für Let's Encrypt (ACME)
+#   D4Y_HOST        (Pflicht)   Hostname von d4y (öffentlicher DNS-A-Record ODER interner Name/IP)
+#   D4Y_ACME_EMAIL  (optional)  E-Mail für Let's Encrypt (ACME). Leer ⇒ HTTP-only (ADR-0028),
+#                               z. B. für eine VM ohne öffentliche IP — d4y läuft dann über http://.
 #   D4Y_BUNDLE_URL  (optional)  Default: GitHub-Release-Asset (linux/x86_64)
 #
 # Docker wird bei Bedarf automatisch installiert (Linux, get.docker.com; benötigt root/sudo) — d4y
@@ -23,8 +24,8 @@ NETWORK="d4y"
 
 die() { echo "FEHLER: $*" >&2; exit 1; }
 
-[ -n "${D4Y_HOST:-}" ] || die "D4Y_HOST nicht gesetzt (öffentlicher Hostname, z. B. d4y.example.com)."
-[ -n "${D4Y_ACME_EMAIL:-}" ] || die "D4Y_ACME_EMAIL nicht gesetzt (E-Mail für Let's Encrypt)."
+[ -n "${D4Y_HOST:-}" ] || die "D4Y_HOST nicht gesetzt (Hostname, z. B. d4y.example.com oder interner Name/IP)."
+ACME_EMAIL="${D4Y_ACME_EMAIL:-}"   # leer ⇒ HTTP-only (kein ACME/HTTPS), ADR-0028
 command -v curl >/dev/null 2>&1 || die "curl nicht gefunden."
 [ "$(uname -s)" = "Linux" ] || die "d4y läuft als Host-Bundle nur unter Linux."
 [ "$(uname -m)" = "x86_64" ] || die "Nur linux/x86_64-Bundle verfügbar (erkannt: $(uname -m))."
@@ -83,7 +84,7 @@ $SUDO docker network create "$NETWORK" >/dev/null 2>&1 || true
 # Environment-Datei schreiben (0600).
 printf '%s\n' \
   "D4Y_HOST=$D4Y_HOST" \
-  "D4Y_INGRESS_TLS_ACME_EMAIL=$D4Y_ACME_EMAIL" \
+  "D4Y_INGRESS_TLS_ACME_EMAIL=$ACME_EMAIL" \
   "D4Y_TRIGGER_TOKEN=$TOKEN" \
   "D4Y_SECRETS_ENCRYPTION_KEY=$KEY" \
   "D4Y_DESIRED_STATE_PATH=$DATA_DIR/desired" \
@@ -117,9 +118,20 @@ echo "› Starte d4y (systemd) …"
 $SUDO systemctl daemon-reload
 $SUDO systemctl enable --now d4y
 
+if [ -n "$ACME_EMAIL" ]; then
+  SCHEME="https"
+  REACH="  - DNS: A-Record $D4Y_HOST -> öffentliche IP dieses Hosts
+  - Ports 80/443 von außen erreichbar (ACME/HTTP-01 + HTTPS)"
+else
+  SCHEME="http"
+  REACH="  - HTTP-only (kein ACME) — d4y läuft über http://$D4Y_HOST/
+  - $D4Y_HOST muss auf diesen Host auflösen (DNS oder /etc/hosts); Port 80 erreichbar
+  - Für HTTPS später D4Y_ACME_EMAIL setzen und neu installieren"
+fi
+
 cat <<EOF
 
-✓ d4y läuft als systemd-Service.
+✓ d4y läuft als systemd-Service ($SCHEME).
 
   Status:  systemctl status d4y
   Logs:    journalctl -u d4y -f
@@ -127,15 +139,14 @@ cat <<EOF
 
 Trage diese zwei Werte als GitHub-Actions-Secrets in deinem Config-Repo ein:
 
-  D4Y_URL           = https://$D4Y_HOST
+  D4Y_URL           = $SCHEME://$D4Y_HOST
   D4Y_TRIGGER_TOKEN = $TOKEN
 
 Dann liefert der Config-Repo-Workflow Sollzustand + Secrets an d4y (Vorlage:
 https://grundner.github.io/d4y/config-repo-workflow.yml).
 
-Voraussetzungen für die Erreichbarkeit:
-  - DNS: A-Record $D4Y_HOST -> öffentliche IP dieses Hosts
-  - Ports 80/443 von außen erreichbar (ACME/HTTP-01 + HTTPS)
+Erreichbarkeit:
+$REACH
 
 WICHTIG: Sichere den Encryption-Key separat — ohne ihn ist der verschlüsselte Secret-Store
 bei einem Neuaufsetzen nicht lesbar:

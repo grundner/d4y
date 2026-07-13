@@ -7,6 +7,11 @@ Betrifft: [route](../domain/route.md), [dns-provider](../domain/dns-provider.md)
 > **Ergänzt durch [ADR-0027](0027-d4y-host-bundle-systemd.md):** ACME/`le` gilt unverändert auch für
 > d4ys eigene Route; diese wird im Host-Betrieb per Traefik-File-Provider deklariert (statt über
 > Container-Labels).
+>
+> **Ergänzt/teilweise abgelöst durch [ADR-0028](0028-per-route-tls-and-http-mode.md):** TLS ist nun
+> **pro Route** schaltbar (`tls: true|false`), der **globale HTTP→HTTPS-Redirect entfällt**, und ohne
+> ACME ist der Default **HTTP-only** (VM/Intranet ohne öffentliche IP). Punkt 1 (globaler Redirect)
+> und Punkt 3 (jede Route zwingend `tls=true`) dieses ADR gelten entsprechend nicht mehr.
 
 ## Kontext
 

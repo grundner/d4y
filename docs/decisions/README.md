@@ -36,6 +36,7 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | [0025](0025-full-push-desired-state-delivery.md) | Voll-Push-Auslieferung des Sollzustands | Proposed |
 | [0026](0026-one-liner-bootstrap-github.md) | 1-Zeiler-Bootstrap und Verteilung über GitHub | Superseded by 0027 |
 | [0027](0027-d4y-host-bundle-systemd.md) | d4y als selbst-enthaltendes Host-Bundle (jlink) unter systemd | Proposed |
+| [0028](0028-per-route-tls-and-http-mode.md) | Pro-Route-TLS und HTTP-Betrieb ohne öffentliche IP | Proposed |
 
 > **Accepted** ADRs sind bindend. **Proposed** ADRs sind Entwürfe und werden erst nach
 > expliziter Freigabe auf **Accepted** gesetzt (siehe [../standards/adr.md](../standards/adr.md)).

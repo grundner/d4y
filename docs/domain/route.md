@@ -14,6 +14,11 @@ der eingehenden Verkehr an den passenden Container weiterreicht.
 Die Route beschreibt **was** erreichbar sein soll (Hostname → App) — nicht, mit welchem konkreten
 Proxy oder über welche IP das technisch geschieht.
 
+Eine Route kann **HTTP oder HTTPS** sein ([ADR-0028](../decisions/0028-per-route-tls-and-http-mode.md)):
+über das optionale `tls`-Feld (`true`/`false`). Ohne Angabe gilt der globale TLS-Default (aus der
+ACME-Konfiguration abgeleitet). So sind reine HTTP-Routen möglich — etwa im Intranet/in einer VM ohne
+öffentliche IP oder für lokale Tests.
+
 ## Beziehungen
 
 - Verweist auf genau eine [Application](application.md) als Ziel.
@@ -32,3 +37,6 @@ Proxy oder über welche IP das technisch geschieht.
   [Servers](server.md) ab.
 - Routes betreffen ausschließlich **externen** Ingress; interne Adressierung erfolgt über
   [Service-Discovery](service-discovery.md).
+- TLS ist **pro Route** wählbar ([ADR-0028](../decisions/0028-per-route-tls-and-http-mode.md)):
+  `tls: true` = HTTPS, `tls: false` = reines HTTP, keine Angabe = globaler Default. Es gibt **keinen**
+  automatischen HTTP→HTTPS-Redirect; eine Route bedient genau ein Schema.
