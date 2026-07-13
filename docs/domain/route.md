@@ -1,5 +1,10 @@
 # Domäne — Route (Ingress)
 
+> **Geändert durch [ADR-0029](../decisions/0029-docker-compose-single-source-format.md):** Routes
+> stehen nun in der Sidecar-`d4y.yaml` des App-Verzeichnisses (`service`/`host`/`port`/`path`/`tls`)
+> und werden von d4y als Traefik-Labels über ein generiertes Override-Compose gesetzt. Das
+> Begriffsmodell (Hostname → App, TLS pro Route) bleibt; das proprietäre `routes[]`-Feld entfällt.
+
 Eine **Route** beschreibt die externe Erreichbarkeit einer [Application](application.md): die
 Zuordnung eines **Hostnamens** (und ggf. Pfads) zu einer laufenden App. Routes sind ein
 **First-Class**-Domänenobjekt und werden deklarativ im [Config-Repository](config-repository.md)

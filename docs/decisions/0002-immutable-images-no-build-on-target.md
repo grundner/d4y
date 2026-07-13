@@ -1,8 +1,13 @@
 # ADR-0002: Unveränderliche Images, kein Build auf dem Zielsystem
 
-Status: Proposed
+Status: Superseded by [ADR-0029](0029-docker-compose-single-source-format.md)
 Datum: 2026-07-06
 Betrifft: [container-image](../domain/container-image.md), [application](../domain/application.md), [registry](../domain/registry.md)
+
+> **Abgelöst durch [ADR-0029](0029-docker-compose-single-source-format.md):** Mit Docker Compose als
+> Quellformat ist **Bauen auf dem Ziel erlaubt** (`build:`). Vorgebaute, unveränderliche Images aus
+> Registries bleiben gleichwertig möglich und für schwere/binäre Build-Kontexte empfohlen — aber der
+> generelle „kein Build"-Grundsatz dieses ADR gilt nicht mehr.
 
 ## Kontext
 

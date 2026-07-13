@@ -4,6 +4,11 @@ Status: Proposed
 Datum: 2026-07-13
 Betrifft: [ADR-0023](0023-push-triggered-reconcile-and-trigger-auth.md), [ADR-0001](0001-git-as-single-source-of-truth.md), [ADR-0002](0002-immutable-images-no-build-on-target.md), [registry](../domain/registry.md), [privacy-rules](../rules/privacy-rules.md)
 
+> **Ergänzt durch [ADR-0029](0029-docker-compose-single-source-format.md):** Der verschlüsselte
+> Secret-Store bleibt; aufgelöste Secrets werden nun als **Umgebungsvariablen an den `docker
+> compose`-Prozess** übergeben (native `${VAR}`/`env_file`-Interpolation, nie im Klartext auf Platte).
+> Die `${secret:NAME}`-Syntax entfällt.
+
 ## Kontext
 
 Secrets, die **Container/Images** betreffen — Registry-Zugangsdaten, App-Env-Secrets — sollen

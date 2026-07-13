@@ -8,6 +8,11 @@ Betrifft: [route](../domain/route.md), [service-discovery](../domain/service-dis
 > alle **verwalteten App-Container** maßgeblich. Da d4y selbst nicht mehr als Container läuft, wird
 > **ausschließlich d4ys eigene Route** über einen Traefik-**File-Provider** deklariert (Ziel
 > `host.docker.internal:8080`).
+>
+> **Ergänzt durch [ADR-0029](0029-docker-compose-single-source-format.md):** d4y rendert Routes nicht
+> mehr selbst am Container. Die Route-Angaben stehen in der Sidecar-`d4y.yaml`; d4y injiziert die
+> Traefik-Labels über ein **generiertes Override-Compose** am Ziel-Service (Docker-Label-Provider
+> bleibt). Der Nutzer kann Traefik-Labels alternativ direkt in seiner `compose.yaml` setzen.
 
 ## Kontext
 

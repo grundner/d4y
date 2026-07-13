@@ -1,6 +1,10 @@
   # Architektur — Networking & DNS
 
 Status: Draft
+
+> **Geändert durch [ADR-0029](../decisions/0029-docker-compose-single-source-format.md):** Compose-
+> Services treten dem externen `d4y`-Netz über ein generiertes Override bei (Traefik-Docker-Provider
+> bleibt); Routes stehen in der Sidecar-`d4y.yaml`. Traefik/ACME und der DNS-Modus bleiben unverändert.
 Bezug: [ADR-0010](../decisions/0010-dns-ingress-service-discovery.md),
 [route](../domain/route.md), [dns-provider](../domain/dns-provider.md),
 [service-discovery](../domain/service-discovery.md), [reconciliation-loop](reconciliation-loop.md)

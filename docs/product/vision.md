@@ -15,20 +15,20 @@ austauschbar und enthalten keine individuelle Konfiguration. Eine frisch install
 Maschine soll ihre vollständige Laufzeitumgebung allein durch einen Bootstrap-Befehl und
 ein Konfigurations-Repository automatisch wiederherstellen können.
 
-Anwendungen werden niemals auf dem Zielsystem gebaut. Stattdessen werden sie ausschließlich
-als unveränderliche Container-Images aus vertrauenswürdigen Registries bereitgestellt.
-Dadurch entstehen deterministische und reproduzierbare Deployments über alle Umgebungen
-hinweg.
+Anwendungen werden im vertrauten **Docker-Compose-Format** beschrieben ([ADR-0029](../decisions/0029-docker-compose-single-source-format.md)):
+je App ein Verzeichnis mit einer `compose.yaml`. Images können aus vertrauenswürdigen Registries
+bezogen **oder** auf dem Ziel gebaut werden (`build:`). So bleiben Deployments reproduzierbar und
+zugleich vertraut und lokal lauffähig.
 
 Die Plattform gleicht den tatsächlichen Zustand der Infrastruktur kontinuierlich mit dem in
 Git definierten Sollzustand ab. Fehler werden automatisch erkannt, korrigiert und der
 gewünschte Zustand ohne manuelle Eingriffe wiederhergestellt. Die Infrastruktur bleibt
 dadurch dauerhaft selbstheilend.
 
-D4Y versteht sich nicht als weiterer Container-Orchestrator, sondern als schlanke
-Runtime-Schicht, die Git zum zentralen Betriebsmodell der Infrastruktur macht. Anstatt Server
-manuell zu administrieren, wird die gesamte Infrastruktur deklarativ beschrieben und von der
-Plattform kontinuierlich umgesetzt.
+D4Y ist kein Ersatz für einen Cluster-Orchestrator, sondern eine schlanke, **Git-native und
+selbstheilende Runtime-Schicht**: Sie macht Git zum zentralen Betriebsmodell und setzt den
+Sollzustand kontinuierlich über **Docker Compose** um. Anstatt Server manuell zu administrieren,
+wird die gesamte Infrastruktur deklarativ beschrieben und von der Plattform umgesetzt.
 
 **Das Ziel ist einfach: Infrastruktur soll genauso reproduzierbar, versionierbar und
 deterministisch werden wie Software selbst.**
@@ -58,7 +58,7 @@ spätere Aufteilung in mehrere Komponenten bleibt ausdrücklich möglich.
 ## Leitprinzipien
 
 1. **Git ist die einzige Quelle der Wahrheit.** → [ADR-0001](../decisions/0001-git-as-single-source-of-truth.md)
-2. **Unveränderliche Images, kein Build auf dem Zielsystem.** → [ADR-0002](../decisions/0002-immutable-images-no-build-on-target.md)
+2. **Docker Compose als Quellformat; Bezug aus Registry oder Build auf dem Ziel.** → [ADR-0029](../decisions/0029-docker-compose-single-source-format.md)
 3. **Kontinuierliche Reconciliation, Self-Healing.** → [ADR-0007](../decisions/0007-continuous-reconciliation-self-healing.md)
 4. **Austauschbare, zustandslose Server.** → [server](../domain/server.md)
 5. **Backend-Abstraktion über Container-Engines, Docker zuerst.** → [ADR-0005](../decisions/0005-container-backend-abstraction-docker-first.md)

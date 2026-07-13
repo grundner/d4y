@@ -4,6 +4,10 @@ Status: Proposed
 Datum: 2026-07-13
 Betrifft: [ADR-0019](0019-git-config-repository-source.md), [ADR-0023](0023-push-triggered-reconcile-and-trigger-auth.md), [ADR-0024](0024-delivered-image-secrets-encrypted-store.md), [ADR-0007](0007-continuous-reconciliation-self-healing.md), [ADR-0001](0001-git-as-single-source-of-truth.md)
 
+> **Ergänzt durch [ADR-0029](0029-docker-compose-single-source-format.md):** Der Push-Mechanismus
+> bleibt; die `config`-Nutzlast trägt nun einen **Verzeichnisbaum** (relative Pfade → Inhalt) mit den
+> Compose-App-Verzeichnissen statt flacher `{datei: inhalt}`-Paare.
+
 ## Kontext
 
 [ADR-0019](0019-git-config-repository-source.md) lässt d4y den Sollzustand aus einem Git-Config-Repo

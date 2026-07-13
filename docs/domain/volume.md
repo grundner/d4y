@@ -1,5 +1,9 @@
 # Domäne — Volume (Mount)
 
+> **Geändert durch [ADR-0029](../decisions/0029-docker-compose-single-source-format.md):** Volumes
+> werden nun in **Docker Compose** deklariert (Compose-Syntax, Bind-Mounts wo sinnvoll); die strikte
+> „nur Named Volumes"-Vorgabe entfällt. Backup ist opt-in über die Sidecar-`d4y.yaml`.
+
 Ein **Volume** (allgemeiner: ein **Mount**) ist der Ort, an dem eine
 [Application](application.md) zur Laufzeit Daten ablegt. Volumes sind der Mechanismus, über den
 **persistente** von **ephemeren** Daten unterschieden werden.

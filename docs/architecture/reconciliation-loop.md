@@ -1,6 +1,11 @@
 # Architektur — Reconciliation-Loop
 
 Status: Draft
+
+> **Geändert durch [ADR-0029](../decisions/0029-docker-compose-single-source-format.md):** Der Loop
+> bleibt (observe → diff → reconcile, Self-Healing), aber die Einheit ist das **Compose-Projekt** und
+> der Executor ist `docker compose up -d` / `down` je App (statt Einzel-Container-Create über die
+> Engine-API).
 Bezug: [ADR-0007](../decisions/0007-continuous-reconciliation-self-healing.md),
 [reconciliation](../domain/reconciliation.md),
 [desired-vs-actual-state](../domain/desired-vs-actual-state.md)
