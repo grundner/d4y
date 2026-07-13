@@ -98,6 +98,14 @@ public class SecretStore {
     }
 
     /**
+     * Alle gelieferten Secrets als Name→Wert. Wird als <b>Prozess-Env</b> an {@code docker compose}
+     * übergeben (ADR-0029), damit Compose sie nativ interpoliert ({@code ${VAR}}) — nie auf Platte.
+     */
+    public Map<String, String> all() {
+        return Map.copyOf(secrets);
+    }
+
+    /**
      * Ersetzt {@code ${secret:NAME}}-Platzhalter im Wert durch die gelieferten Secrets.
      * Ein unbekannter Name führt zu {@link UnresolvedSecretException}.
      */

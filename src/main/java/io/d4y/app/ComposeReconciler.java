@@ -33,17 +33,20 @@ public class ComposeReconciler {
     private final ComposeOverrideGenerator overrides;
     private final ComposeExecutor executor;
     private final DockerEdgeProxy edgeProxy;
+    private final SecretStore secretStore;
     private final String prefix;
 
     public ComposeReconciler(AppProjectSource source,
                              ComposeOverrideGenerator overrides,
                              ComposeExecutor executor,
                              DockerEdgeProxy edgeProxy,
+                             SecretStore secretStore,
                              @Value("${d4y.compose.project-prefix:d4y-}") String prefix) {
         this.source = source;
         this.overrides = overrides;
         this.executor = executor;
         this.edgeProxy = edgeProxy;
+        this.secretStore = secretStore;
         this.prefix = prefix;
     }
 
@@ -56,6 +59,9 @@ public class ComposeReconciler {
     public void reconcile(Set<String> heldAppNames, boolean build) {
         edgeProxy.ensureNetwork(); // externes d4y-Netz muss existieren, bevor das Override es referenziert
 
+        // Gelieferte Secrets als Prozess-Env für die Compose-Interpolation (${VAR}); nie auf Platte.
+        Map<String, String> secretEnv = secretStore.all();
+
         List<AppProject> desired = source.load();
         Set<String> desiredProjects = new HashSet<>();
         for (AppProject app : desired) {
@@ -66,7 +72,7 @@ public class ComposeReconciler {
             }
             try {
                 Path override = overrides.generate(app);
-                executor.up(project, app.directory(), app.composeFile(), override, build, Map.of());
+                executor.up(project, app.directory(), app.composeFile(), override, build, secretEnv);
             } catch (RuntimeException e) {
                 log.warn("App '{}' konnte nicht reconciled werden: {}", app.name(), e.getMessage());
                 log.debug("Details", e);
