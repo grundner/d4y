@@ -2,6 +2,7 @@ package io.d4y.adapter.docker;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.d4y.config.D4yProperties;
 import io.d4y.domain.model.D4yLabels;
 import org.slf4j.Logger;
@@ -47,6 +48,8 @@ public class DockerEdgeProxy {
 
     private final DockerHttpClient docker;
     private final ObjectMapper json;
+    // Traefiks File-Provider liest nur YAML/TOML (kein JSON) — die Selbst-Route wird daher als YAML geschrieben.
+    private final ObjectMapper yaml = new YAMLMapper();
     private final String socketPath;
     private final D4yProperties.Ingress ingress;
 
@@ -136,14 +139,15 @@ public class DockerEdgeProxy {
                 "routers", Map.of("d4y", router),
                 "services", Map.of("d4y", service)));
         try {
-            String content = json.writerWithDefaultPrettyPrinter().writeValueAsString(doc);
+            String content = yaml.writeValueAsString(doc);
             Path dir = Path.of(self.dynamicDir());
             Files.createDirectories(dir);
-            Path file = dir.resolve("d4y.json");
+            Files.deleteIfExists(dir.resolve("d4y.json")); // veraltetes JSON aus früheren Versionen entfernen
+            Path file = dir.resolve("d4y.yml");
             if (Files.exists(file) && content.equals(Files.readString(file))) {
                 return; // unverändert — kein Reload triggern
             }
-            Path tmp = dir.resolve("d4y.json.tmp");
+            Path tmp = dir.resolve("d4y.yml.tmp");
             Files.writeString(tmp, content);
             Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             log.info("Selbst-Route für Host '{}' → {} geschrieben", self.host(), self.target());
@@ -219,9 +223,14 @@ public class DockerEdgeProxy {
         body.put("Cmd", traefikArgs());
         body.put("Labels", Map.of("d4y.system", "edge-proxy"));
         body.put("ExposedPorts", Map.of("80/tcp", Map.of(), "443/tcp", Map.of()));
+        List<String> env = new ArrayList<>();
+        // Traefiks Docker-Client spricht sonst eine zu alte API-Version (1.24); moderne Daemons
+        // verlangen eine Mindest-API. 1.40 (Docker ≥ 19.03) wird von allen betroffenen Daemons akzeptiert.
+        env.add("DOCKER_API_VERSION=1.40");
         if (acme.enabled() && !acme.env().isEmpty()) {
-            body.put("Env", acme.env().entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).toList());
+            acme.env().forEach((k, v) -> env.add(k + "=" + v));
         }
+        body.put("Env", env);
         Map<String, Object> hostConfig = new LinkedHashMap<>();
         hostConfig.put("NetworkMode", NETWORK);
         List<String> binds = new ArrayList<>();
