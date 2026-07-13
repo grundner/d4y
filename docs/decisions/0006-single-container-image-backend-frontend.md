@@ -1,9 +1,14 @@
 # ADR-0006: Auslieferung von Backend und Frontend als einzelnes Container-Image
 
-Status: Accepted
+Status: Superseded by [ADR-0027](0027-d4y-host-bundle-systemd.md)
 Datum: 2026-07-06
 Angenommen: 2026-07-06
 Betrifft: [architecture/overview](../architecture/overview.md)
+
+> **Abgelöst durch [ADR-0027](0027-d4y-host-bundle-systemd.md):** d4y wird nicht mehr als
+> Container-Image ausgeliefert, sondern als selbst-enthaltendes Host-Bundle (jlink). Der Kern von
+> ADR-0006 — Backend **und** Frontend als **ein** Artefakt — bleibt gewahrt (das Frontend ist weiter
+> ins Fat-JAR eingebettet, das Bundle bündelt beides).
 
 ## Kontext
 

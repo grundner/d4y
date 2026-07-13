@@ -1,0 +1,18 @@
+[Unit]
+# ADR-0027: d4y läuft direkt auf dem Host als selbst-enthaltendes Bundle (kein Container).
+Description=d4y — Git-native Runtime Platform
+Documentation=https://github.com/grundner/d4y
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/d4y/d4y.env
+WorkingDirectory=/var/lib/d4y
+ExecStart=/opt/d4y/bin/d4y
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,13 +1,13 @@
 # Release & Versionierung
 
-Wie das d4y-Runtime-Image versioniert, gebaut und publiziert wird. Grundlage:
-[ADR-0022](../decisions/0022-release-versioning-image-pipeline.md); ergänzt
-[ADR-0002](../decisions/0002-immutable-images-no-build-on-target.md) (unveränderliche Images),
-[ADR-0006](../decisions/0006-single-container-image-backend-frontend.md) (ein Image) und
-[ADR-0008](../decisions/0008-bootstrap-single-command-install.md) (Bootstrap bezieht das Image).
+Wie das d4y-Runtime-Artefakt versioniert, gebaut und publiziert wird. Grundlage:
+[ADR-0027](../decisions/0027-d4y-host-bundle-systemd.md) (Host-Bundle statt Container-Image), das
+[ADR-0022](../decisions/0022-release-versioning-image-pipeline.md) und
+[ADR-0006](../decisions/0006-single-container-image-backend-frontend.md) ablöst; die SemVer/Git-Tag-
+Versions-Wahrheit aus ADR-0022 bleibt gültig.
 
 d4y ist stateless ([ADR-0001](../decisions/0001-git-as-single-source-of-truth.md)) — hier geht es
-ausschließlich um die Versionierung des **Runtime-Images**, nicht um Daten oder DB-Schemata.
+ausschließlich um die Versionierung und Auslieferung des **Runtime-Bundles**, nicht um Daten.
 
 ## Versionierung — eine Quelle der Wahrheit
 
@@ -18,33 +18,45 @@ ausschließlich um die Versionierung des **Runtime-Images**, nicht um Daten oder
   - `springBoot { buildInfo() }` → `/actuator/info` zeigt Version & Build-Zeit.
   - Der OpenAPI-Vertrag ([ADR-0021](../decisions/0021-published-api-contract-openapi.md)) liest
     `info.version` zur Laufzeit aus `BuildProperties`.
-  - Der Image-Tag entspricht der Projektversion.
+  - Der Bundle-Dateiname enthält die Projektversion.
 
-## Image-Build
+## Bundle-Build (ADR-0027)
 
-- **`./gradlew bootBuildImage`** (Cloud Native Buildpacks / Paketo) erzeugt das OCI-Image aus dem
-  Fat-Jar — **kein Dockerfile**. Das statische Frontend ist eingebettet (Single-Image, ADR-0006).
-- Image-Name: `ghcr.io/grundner/d4y:<version>`. Ein Docker-Daemon wird benötigt.
+d4y läuft direkt auf dem Host (kein Container-Image mehr). Der Build erzeugt ein selbst-enthaltendes
+Bundle mit eingebettetem Minimal-JRE — **kein System-Java** auf dem Ziel nötig:
+
+- **`./gradlew bundleTar`** erzeugt `build/dist/d4y-<version>.tar.gz`. Kette:
+  `bootJar` (Fat-Jar inkl. eingebettetem Frontend, ADR-0006-Kern) → `jlinkRuntime` (Minimal-JRE via
+  `jlink`) → `jpackageImage` (`jpackage --type app-image` bündelt App + JRE) → `bundleTar` (System-`tar`,
+  erhält das Ausführbar-Bit von `bin/d4y`).
+- Das jlink-Modul-Set nutzt pragmatisch `java.se` plus die von Netty/TLS/JGit benötigten
+  `jdk.*`-Module; bei Bedarf später via `jdeps` trimmen.
+- Das Bundle entpackt zu `d4y/` mit `bin/d4y` (Launcher) und eingebettetem Runtime.
 
 ## Publish — automatisch via GitHub Actions (`.github/workflows/release.yml`)
 
-| Auslöser | Image-Tags | Zweck |
-|---|---|---|
-| Push auf `main` | `edge`, `sha-<short>` | Continuous, für Live-Tests |
-| Tag `vX.Y.Z` | `X.Y.Z`, `latest` | Release |
-| Pull Request | — (nur Build/Tests) | Verifikation, kein Push |
+| Auslöser | Ergebnis |
+|---|---|
+| Push auf `main` | nur `verify` (Build/Tests) |
+| Pull Request | nur `verify` (Build/Tests) |
+| Tag `vX.Y.Z` | Bundle bauen und als **GitHub-Release-Asset** `d4y-linux-x86_64.tar.gz` anhängen |
 
-Registry: **GHCR** (`ghcr.io/grundner/d4y`), Login in CI via `GITHUB_TOKEN` (`packages: write`).
-
-## Manueller Fallback
-
-```bash
-# lokal ein Image bauen und direkt pushen (Credentials vorausgesetzt)
-./gradlew bootBuildImage --publishImage -Pversion=<version>
-```
+Der `bundle`-Job (`permissions: contents: write`) lädt das Tarball per `gh release upload` an das
+Release `vX.Y.Z`. Der Installer bezieht es anonym über
+`https://github.com/grundner/d4y/releases/latest/download/d4y-linux-x86_64.tar.gz`. **Keine Registry,
+kein GHCR, keine Paket-Sichtbarkeit** mehr zu pflegen.
 
 ## Release-Schritte (Kurzform)
 
-1. `CHANGELOG.md` aktualisieren, mergen nach `main` (→ `:edge` zum Testen).
-2. Annotierten Tag setzen: `git tag -a v0.1.0 -m "…" && git push origin v0.1.0`.
-3. CI baut & pusht `:0.1.0` + `:latest` nach GHCR.
+1. `CHANGELOG.md` aktualisieren, nach `main` mergen.
+2. Annotierten Tag setzen: `git tag -a v0.2.0 -m "…" && git push origin v0.2.0`.
+3. CI baut das Bundle und hängt `d4y-linux-x86_64.tar.gz` an das GitHub-Release `v0.2.0`.
+
+## Lokaler Build / Fallback
+
+```bash
+./gradlew bundleTar -Pversion=<version>   # build/dist/d4y-<version>.tar.gz
+```
+
+Hinweis: Das Bundle ist plattformgebunden — auf einem Linux/x86_64-Runner bauen, damit das eingebettete
+JRE und die nativen Netty-epoll-Transporte zur Zielplattform passen.

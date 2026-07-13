@@ -20,31 +20,41 @@ ist **Accepted**, andere noch **Proposed** (siehe [Index](docs/decisions/README.
 
 ## Installation (1-Zeiler)
 
-Auf einem Host mit Docker und öffentlichem DNS-A-Record ([ADR-0026](docs/decisions/0026-one-liner-bootstrap-github.md)):
+Auf einem Linux-Host (x86_64) mit öffentlichem DNS-A-Record ([ADR-0027](docs/decisions/0027-d4y-host-bundle-systemd.md)):
 
 ```bash
 D4Y_HOST=d4y.example.com D4Y_ACME_EMAIL=you@example.com \
   sh -c "$(curl -fsSL https://grundner.github.io/d4y/install.sh)"
 ```
 
-Der Installer zieht das Image aus dem öffentlichen GHCR (anonym), erzeugt lokal ein Trigger-Token +
-Encryption-Key und startet d4y hinter Traefik mit ACME-TLS. d4y hält **keine** GitHub-Credentials —
-Sollzustand und Secrets liefert ein GitHub-Actions-Workflow im Config-Repo per Push
-([ADR-0025](docs/decisions/0025-full-push-desired-state-delivery.md), Vorlage:
+Der Installer lädt das d4y-**Bundle** (App + eingebettetes JRE, **kein System-Java**) vom
+GitHub-Release, entpackt es nach `/opt/d4y` und richtet einen **systemd-Service** ein. Docker wird bei
+Bedarf installiert — d4y läuft direkt auf dem Host, orchestriert Traefik/Apps über den Docker-Socket
+und stellt seine eigene HTTPS-Route (ACME) per Traefik-File-Provider her. d4y hält **keine**
+GitHub-Credentials — Sollzustand und Secrets liefert ein GitHub-Actions-Workflow im Config-Repo per
+Push ([ADR-0025](docs/decisions/0025-full-push-desired-state-delivery.md), Vorlage:
 [`site/config-repo-workflow.yml`](site/config-repo-workflow.yml)).
+
+## Betrieb
+
+```bash
+systemctl status d4y       # Zustand
+journalctl -u d4y -f       # Logs
+systemctl restart d4y      # Neustart
+```
 
 ## Build & Release
 
 ```bash
 ./gradlew build            # Fat-Jar (Backend + eingebettetes Frontend); -PskipFrontend überspringt das Frontend
 ./gradlew bootRun          # lokal starten → http://localhost:8080
-./gradlew bootBuildImage   # OCI-Image ghcr.io/grundner/d4y:<version> (Docker nötig)
+./gradlew bundleTar        # Host-Bundle build/dist/d4y-<version>.tar.gz (jlink + jpackage)
 ```
 
-Versionierung, Image-Build und Publish sind in
+Versionierung und Auslieferung sind in
 [`docs/architecture/release-and-versioning.md`](docs/architecture/release-and-versioning.md)
-beschrieben ([ADR-0022](docs/decisions/0022-release-versioning-image-pipeline.md)): Git-Tag `vX.Y.Z`
-als Versions-Wahrheit, Images automatisch nach GHCR (Tag→Release, `main`→`edge`).
+beschrieben ([ADR-0027](docs/decisions/0027-d4y-host-bundle-systemd.md)): Git-Tag `vX.Y.Z` als
+Versions-Wahrheit; bei einem Tag baut die CI das Bundle und hängt es als Asset an das GitHub-Release.
 
 ## Dokumentation
 
@@ -69,4 +79,4 @@ Nur **Accepted** ADRs und Domänendokumente treiben die Implementierung. Details
 - **Backend:** Java 21 + Spring Boot — [ADR-0003](docs/decisions/0003-java21-spring-boot-backend.md)
 - **Frontend:** Next.js + React, read-only — [ADR-0004](docs/decisions/0004-nextjs-react-readonly-frontend.md)
 - **Container-Backend:** Abstraktion, Docker zuerst — [ADR-0005](docs/decisions/0005-container-backend-abstraction-docker-first.md)
-- **Auslieferung:** Backend + Frontend als ein Image — [ADR-0006](docs/decisions/0006-single-container-image-backend-frontend.md)
+- **Auslieferung:** d4y als Host-Bundle (jlink) unter systemd — [ADR-0027](docs/decisions/0027-d4y-host-bundle-systemd.md) *(löst das Single-Image aus [ADR-0006](docs/decisions/0006-single-container-image-backend-frontend.md) ab)*

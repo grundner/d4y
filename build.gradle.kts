@@ -139,10 +139,76 @@ openApi {
     waitTimeInSeconds.set(60)
 }
 
-// ---- ADR-0022: OCI-Image via Cloud Native Buildpacks (kein Dockerfile) ----
-// `./gradlew bootBuildImage` erzeugt ghcr.io/grundner/d4y:<version> in den lokalen Docker-Daemon.
-// Das Frontend ist eingebettet (kein -PskipFrontend beim Image-Build). Publish: CI oder
-// `--publishImage` mit Registry-Credentials.
-tasks.named<org.springframework.boot.gradle.tasks.bundling.BootBuildImage>("bootBuildImage") {
-    imageName.set("ghcr.io/grundner/d4y:${project.version}")
+// ---- ADR-0027: Selbst-enthaltendes Host-Bundle (jlink-Runtime + jpackage app-image) ----
+// Ersetzt den früheren OCI-Image-Build (bootBuildImage/GHCR). d4y läuft direkt auf dem Host unter
+// systemd (kein System-Java): `./gradlew bundleTar` erzeugt build/dist/d4y-<version>.tar.gz mit der
+// App (Fat-Jar inkl. Frontend) und einem eingebetteten Minimal-JRE. Das Tarball ist das
+// Release-Asset (siehe .github/workflows/release.yml, site/install.sh).
+val bundleLauncher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(21)
+}
+// java.se = voller SE-Aggregator (kompatibilitätssicher; vermeidet fehlende Module zur Laufzeit),
+// plus die von Netty/TLS/JGit genutzten jdk.*-Module. Bei Bedarf später via `jdeps` trimmen.
+val jlinkModules = "java.se,jdk.unsupported,jdk.crypto.ec,jdk.crypto.cryptoki,jdk.zipfs"
+val jlinkOut = layout.buildDirectory.dir("jlink-runtime")
+val bundleInput = layout.buildDirectory.dir("bundle-input")
+val distDir = layout.buildDirectory.dir("dist")
+
+val jlinkRuntime by tasks.registering(Exec::class) {
+    group = "distribution"
+    description = "Erzeugt ein minimales JRE via jlink (wird ins Bundle eingebettet)."
+    val binDir = bundleLauncher.map { it.metadata.installationPath.dir("bin").asFile.absolutePath }
+    doFirst {
+        delete(jlinkOut)
+        commandLine(
+            "${binDir.get()}/jlink",
+            "--add-modules", jlinkModules,
+            "--strip-debug", "--no-header-files", "--no-man-pages", "--compress=zip-6",
+            "--output", jlinkOut.get().asFile.absolutePath
+        )
+    }
+    outputs.dir(jlinkOut)
+}
+
+// Nur das ausführbare bootJar (kein *-plain.jar) als jpackage-Input isolieren.
+val stageBundleInput by tasks.registering(Copy::class) {
+    group = "distribution"
+    from(tasks.named("bootJar"))
+    into(bundleInput)
+}
+
+val jpackageImage by tasks.registering(Exec::class) {
+    group = "distribution"
+    description = "Baut das app-image (App + eingebettetes JRE) via jpackage."
+    dependsOn(jlinkRuntime, stageBundleInput)
+    val binDir = bundleLauncher.map { it.metadata.installationPath.dir("bin").asFile.absolutePath }
+    val bootJarName = tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar")
+        .flatMap { it.archiveFileName }
+    doFirst {
+        delete(distDir.get().dir("d4y"))
+        // Main-Class kommt aus dem Spring-Boot-Manifest (JarLauncher) — kein --main-class nötig.
+        commandLine(
+            "${binDir.get()}/jpackage",
+            "--type", "app-image",
+            "--name", "d4y",
+            "--input", bundleInput.get().asFile.absolutePath,
+            "--main-jar", bootJarName.get(),
+            "--runtime-image", jlinkOut.get().asFile.absolutePath,
+            "--dest", distDir.get().asFile.absolutePath
+        )
+    }
+    outputs.dir(distDir.map { it.dir("d4y") })
+}
+
+// System-`tar` statt Gradle-Tar: erhält das Ausführbar-Bit von bin/d4y und runtime/bin/java.
+val bundleTar by tasks.registering(Exec::class) {
+    group = "distribution"
+    description = "Packt das app-image in build/dist/d4y-<version>.tar.gz (Release-Asset)."
+    dependsOn(jpackageImage)
+    val out = distDir.map { it.file("d4y-${project.version}.tar.gz").asFile.absolutePath }
+    doFirst {
+        commandLine("tar", "-czf", out.get(),
+            "-C", distDir.get().asFile.absolutePath, "d4y")
+    }
+    outputs.file(distDir.map { it.file("d4y-${project.version}.tar.gz") })
 }

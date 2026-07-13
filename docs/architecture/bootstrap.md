@@ -8,12 +8,15 @@ Bezug: [ADR-0008](../decisions/0008-bootstrap-single-command-install.md),
 Eine frisch installierte Linux-Maschine soll ihre vollständige Laufzeitumgebung allein durch
 **einen einzigen Bootstrap-Befehl** und ein Konfigurations-Repository wiederherstellen können.
 
-> **Konkretisierung — 1-Zeiler & Voll-Push ([ADR-0026](../decisions/0026-one-liner-bootstrap-github.md)):**
-> In der umgesetzten Variante liegt **alles auf GitHub** und d4y arbeitet **voll push-getrieben**
-> ([ADR-0025](../decisions/0025-full-push-desired-state-delivery.md)). Der Bootstrap ist ein
-> `curl … | sh`-Installer (GitHub Pages), der das öffentliche GHCR-Image anonym zieht und d4y hinter
-> Traefik/ACME startet. Abgefragt werden dann **Host + ACME-Mail** statt Config-Repo-Credentials —
-> d4y hält **keine** GitHub-Credentials; Sollzustand und Secrets kommen per authentifiziertem Push.
+> **Konkretisierung — 1-Zeiler & Voll-Push ([ADR-0027](../decisions/0027-d4y-host-bundle-systemd.md),
+> [ADR-0025](../decisions/0025-full-push-desired-state-delivery.md)):**
+> In der umgesetzten Variante liegt **alles auf GitHub** und d4y arbeitet **voll push-getrieben**. Der
+> Bootstrap ist ein `curl … | sh`-Installer (GitHub Pages), der d4y als **selbst-enthaltendes Bundle**
+> (App + eingebettetes JRE, **kein System-Java**) vom GitHub-Release lädt, direkt auf dem Host entpackt
+> und als **systemd-Service** startet (kein Container für d4y selbst). Docker bleibt Pflicht — d4y
+> orchestriert Traefik und Apps weiter über den Docker-Socket; die eigene Traefik-Route entsteht per
+> File-Provider im Code. Abgefragt werden **Host + ACME-Mail** statt Config-Repo-Credentials — d4y hält
+> **keine** GitHub-Credentials; Sollzustand und Secrets kommen per authentifiziertem Push.
 > Der folgende konzeptionelle Ablauf (Pull-Modell) bleibt als optionale Alternative gültig.
 
 ## Was der Bootstrap abfragt

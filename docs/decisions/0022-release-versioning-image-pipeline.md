@@ -1,8 +1,12 @@
 # ADR-0022: Release-Versionierung und Image-Pipeline (SemVer/Git-Tag, Buildpacks, GHCR)
 
-Status: Proposed
+Status: Superseded by [ADR-0027](0027-d4y-host-bundle-systemd.md)
 Datum: 2026-07-13
 Betrifft: [ADR-0002](0002-immutable-images-no-build-on-target.md), [ADR-0006](0006-single-container-image-backend-frontend.md), [ADR-0008](0008-bootstrap-single-command-install.md), [architecture/release-and-versioning](../architecture/release-and-versioning.md)
+
+> **Abgelöst durch [ADR-0027](0027-d4y-host-bundle-systemd.md):** Die Versions-Wahrheit (SemVer/Git-Tag
+> `vX.Y.Z`) und `buildInfo()` bleiben gültig, aber das Auslieferungs-Artefakt ist kein GHCR-Image mehr,
+> sondern ein jlink-Host-Bundle als GitHub-Release-Asset. `bootBuildImage`/GHCR entfallen.
 
 ## Kontext
 
