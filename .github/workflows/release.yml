@@ -1,0 +1,76 @@
+name: Release & Image
+
+# ADR-0022: Versioniertes d4y-Image nach GHCR.
+#  - Push auf main        → :edge  + :sha-<short>   (Continuous, für Live-Tests)
+#  - Tag  vX.Y.Z          → :X.Y.Z + :latest        (Release)
+#  - Pull Request         → nur verify (Build/Tests), kein Push
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build & Test (inkl. Frontend)
+        run: ./gradlew build --console=plain
+
+  image:
+    # Images nur bei push (main/Tag) — nicht auf PRs.
+    if: github.event_name == 'push'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Version & Tags bestimmen
+        id: meta
+        run: |
+          REPO="ghcr.io/${GITHUB_REPOSITORY_OWNER}/d4y"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"        # vX.Y.Z → X.Y.Z
+            EXTRA="${REPO}:latest"
+          else
+            VERSION="edge"
+            EXTRA="${REPO}:sha-$(git rev-parse --short HEAD)"
+          fi
+          echo "repo=${REPO}"        >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}"  >> "$GITHUB_OUTPUT"
+          echo "extra=${EXTRA}"      >> "$GITHUB_OUTPUT"
+
+      - name: Image bauen (Buildpacks, inkl. Frontend)
+        run: ./gradlew bootBuildImage -Pversion=${{ steps.meta.outputs.version }} --console=plain
+
+      - name: GHCR-Login
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Tags pushen
+        run: |
+          PRIMARY="${{ steps.meta.outputs.repo }}:${{ steps.meta.outputs.version }}"
+          docker push "${PRIMARY}"
+          docker tag  "${PRIMARY}" "${{ steps.meta.outputs.extra }}"
+          docker push "${{ steps.meta.outputs.extra }}"

@@ -1,0 +1,42 @@
+name: OpenAPI-Vertrag
+
+# ADR-0021: Der generierte API-Vertrag (docs/api/openapi.yaml) muss stets dem Code entsprechen.
+# Dieser Workflow regeneriert die Spec und schlägt fehl, wenn die committete Datei veraltet ist
+# (Drift-Gate). Entwickler:innen erzeugen die Datei dann lokal neu und committen sie mit:
+#   ./gradlew generateOpenApiDocs -PskipFrontend
+on:
+  push:
+    paths:
+      - "src/main/java/io/d4y/api/**"
+      - "build.gradle.kts"
+      - "docs/api/openapi.yaml"
+      - ".github/workflows/openapi-contract.yml"
+  pull_request:
+    paths:
+      - "src/main/java/io/d4y/api/**"
+      - "build.gradle.kts"
+      - "docs/api/openapi.yaml"
+
+jobs:
+  verify-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 21 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: OpenAPI-Spec generieren
+        # -PskipFrontend: für den Vertrag wird nur die API benötigt, kein Next.js-Export (ADR-0014).
+        run: ./gradlew generateOpenApiDocs -PskipFrontend --console=plain
+
+      - name: Auf Drift prüfen
+        run: |
+          if ! git diff --exit-code -- docs/api/openapi.yaml; then
+            echo "::error::docs/api/openapi.yaml ist veraltet. Lokal neu erzeugen und committen:" \
+                 "./gradlew generateOpenApiDocs -PskipFrontend"
+            exit 1
+          fi
