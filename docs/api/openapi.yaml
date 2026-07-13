@@ -306,6 +306,10 @@ components:
     TriggerRequest:
       type: object
       properties:
+        config:
+          type: object
+          additionalProperties:
+            type: string
         secrets:
           type: object
           additionalProperties:

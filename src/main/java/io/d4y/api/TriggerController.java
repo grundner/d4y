@@ -1,6 +1,7 @@
 package io.d4y.api;
 
 import io.d4y.adapter.git.GitConfigSync;
+import io.d4y.app.PushedConfigStore;
 import io.d4y.app.ReconciliationLoop;
 import io.d4y.app.SecretStore;
 import io.d4y.config.D4yProperties;
@@ -32,21 +33,27 @@ public class TriggerController {
 
     private static final Logger log = LoggerFactory.getLogger(TriggerController.class);
 
+    private final PushedConfigStore pushedConfigStore;
     private final SecretStore secretStore;
     private final GitConfigSync gitSync;
     private final ReconciliationLoop reconciliationLoop;
     private final String token;
 
-    public TriggerController(SecretStore secretStore, GitConfigSync gitSync,
-                             ReconciliationLoop reconciliationLoop, D4yProperties properties) {
+    public TriggerController(PushedConfigStore pushedConfigStore, SecretStore secretStore,
+                             GitConfigSync gitSync, ReconciliationLoop reconciliationLoop,
+                             D4yProperties properties) {
+        this.pushedConfigStore = pushedConfigStore;
         this.secretStore = secretStore;
         this.gitSync = gitSync;
         this.reconciliationLoop = reconciliationLoop;
         this.token = properties.trigger().token();
     }
 
-    /** Body des Trigger-Calls: der vollständige Secret-Satz (idempotenter Replace), optional. */
-    public record TriggerRequest(Map<String, String> secrets) {
+    /**
+     * Body des Trigger-Calls (ADR-0025): vollständiger Sollzustand (Dateiname → YAML) und vollständiger
+     * Secret-Satz (Name → Wert). Beide idempotenter Replace, beide optional.
+     */
+    public record TriggerRequest(Map<String, String> config, Map<String, String> secrets) {
     }
 
     @PostMapping("/reconcile")
@@ -62,9 +69,20 @@ public class TriggerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        if (request != null && request.secrets() != null) {
-            secretStore.replaceAll(request.secrets());
+        if (request != null) {
+            if (request.config() != null) {
+                try {
+                    pushedConfigStore.replaceAll(request.config());
+                } catch (IllegalArgumentException e) {
+                    // z. B. ungültiger/traversierender Dateiname — kein Secret in der Antwort.
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+            if (request.secrets() != null) {
+                secretStore.replaceAll(request.secrets());
+            }
         }
+        // Pull-Modus (ADR-0019) bleibt optional; im Voll-Push-Modus ist gitSync inert.
         if (gitSync.enabled()) {
             gitSync.sync();
         }

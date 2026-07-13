@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>d4y — Git-native Runtime Platform</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font: 16px/1.6 system-ui, sans-serif; max-width: 44rem; margin: 4rem auto; padding: 0 1.25rem; }
+    h1 { font-size: 2.2rem; margin-bottom: .25rem; }
+    .sub { opacity: .75; margin-top: 0; }
+    pre { background: #1113; padding: 1rem 1.15rem; border-radius: 8px; overflow-x: auto; }
+    code { font-family: ui-monospace, monospace; }
+    h2 { margin-top: 2.5rem; }
+    a { color: #6a5cff; }
+    ul { padding-left: 1.2rem; }
+    .note { opacity: .8; font-size: .95rem; }
+  </style>
+</head>
+<body>
+  <h1>d4y</h1>
+  <p class="sub">Git-native Runtime Platform für containerisierte Anwendungen — Sollzustand deklarativ, kontinuierlich selbstheilend.</p>
+
+  <h2>Installation (1-Zeiler)</h2>
+  <p>Auf einem Host mit Docker und öffentlichem DNS-A-Record:</p>
+  <pre><code>D4Y_HOST=d4y.example.com D4Y_ACME_EMAIL=you@example.com \
+  sh -c "$(curl -fsSL https://grundner.github.io/d4y/install.sh)"</code></pre>
+  <p class="note">Der Installer zieht das Image aus dem öffentlichen GHCR (anonym), erzeugt lokal ein
+  Trigger-Token und einen Encryption-Key und startet d4y hinter Traefik mit automatischem TLS (ACME).
+  d4y hält <strong>keine</strong> GitHub-Credentials.</p>
+
+  <h2>Wie es funktioniert</h2>
+  <ul>
+    <li>Dein <strong>Config-Repo</strong> (privat) beschreibt den Sollzustand als YAML mit
+      <code>${secret:NAME}</code>-Platzhaltern.</li>
+    <li>Ein <strong>GitHub-Actions-Workflow</strong> pusht Sollzustand + Secrets an d4y
+      (<a href="config-repo-workflow.yml">Vorlage</a>).</li>
+    <li>d4y persistiert beides lokal (Secrets verschlüsselt) und <strong>reconciled</strong>
+      kontinuierlich — auch ohne weiteren Push und über Neustarts hinweg.</li>
+  </ul>
+
+  <h2>Mehr</h2>
+  <ul>
+    <li><a href="https://github.com/grundner/d4y">Quellcode &amp; Dokumentation (GitHub)</a></li>
+    <li><a href="config-repo-workflow.yml">Config-Repo-Workflow-Vorlage</a></li>
+    <li><a href="install.sh">install.sh</a> (vor der Ausführung prüfen)</li>
+  </ul>
+</body>
+</html>

@@ -1,0 +1,49 @@
+# Vorlage: gehört ins CONFIG-REPO (nicht ins d4y-Repo).
+# Liefert Sollzustand + Secrets per Push an d4y (ADR-0025). Benötigt zwei Actions-Secrets:
+#   D4Y_URL            = https://<dein-host>      (Ausgabe des Installers)
+#   D4Y_TRIGGER_TOKEN  = <token>                  (Ausgabe des Installers)
+# Zusätzlich je referenziertem ${secret:NAME} ein gleichnamiges Actions-Secret.
+name: Deploy to d4y
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "*/30 * * * *"   # Konvergenz-Heartbeat (Zustell-Sicherung)
+  workflow_dispatch:
+
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sollzustand + Secrets an d4y pushen
+        env:
+          D4Y_URL: ${{ secrets.D4Y_URL }}
+          D4Y_TRIGGER_TOKEN: ${{ secrets.D4Y_TRIGGER_TOKEN }}
+          # App-Secrets (Beispiele) — passe sie an die ${secret:NAME} in deinen YAMLs an:
+          APP_API_TOKEN: ${{ secrets.APP_API_TOKEN }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # config: alle *.yaml/*.yml im Repo-Wurzelverzeichnis → { "datei.yaml": "<inhalt>" }
+          config=$(jq -n '{}')
+          for f in *.yaml *.yml; do
+            [ -e "$f" ] || continue
+            config=$(jq --arg n "$f" --rawfile c "$f" '. + {($n): $c}' <<<"$config")
+          done
+
+          # secrets: nur die Namen, die deine YAMLs als ${secret:NAME} referenzieren
+          secrets=$(jq -n \
+            --arg APP_API_TOKEN "${APP_API_TOKEN:-}" \
+            --arg GHCR_TOKEN "${GHCR_TOKEN:-}" \
+            '{APP_API_TOKEN: $APP_API_TOKEN, GHCR_TOKEN: $GHCR_TOKEN}')
+
+          payload=$(jq -n --argjson config "$config" --argjson secrets "$secrets" \
+            '{config: $config, secrets: $secrets}')
+
+          curl -fsS -X POST "$D4Y_URL/api/reconcile" \
+            -H "Authorization: Bearer $D4Y_TRIGGER_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$payload"

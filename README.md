@@ -18,6 +18,21 @@ Inzwischen existiert lauffähiger Code: ein Spring-Boot-Backend (`src/main/java/
 Reconciliation-Loop, REST-API unter `/api` und eingebettetem Next.js-Frontend. Ein Teil der ADRs
 ist **Accepted**, andere noch **Proposed** (siehe [Index](docs/decisions/README.md)).
 
+## Installation (1-Zeiler)
+
+Auf einem Host mit Docker und öffentlichem DNS-A-Record ([ADR-0026](docs/decisions/0026-one-liner-bootstrap-github.md)):
+
+```bash
+D4Y_HOST=d4y.example.com D4Y_ACME_EMAIL=you@example.com \
+  sh -c "$(curl -fsSL https://grundner.github.io/d4y/install.sh)"
+```
+
+Der Installer zieht das Image aus dem öffentlichen GHCR (anonym), erzeugt lokal ein Trigger-Token +
+Encryption-Key und startet d4y hinter Traefik mit ACME-TLS. d4y hält **keine** GitHub-Credentials —
+Sollzustand und Secrets liefert ein GitHub-Actions-Workflow im Config-Repo per Push
+([ADR-0025](docs/decisions/0025-full-push-desired-state-delivery.md), Vorlage:
+[`site/config-repo-workflow.yml`](site/config-repo-workflow.yml)).
+
 ## Build & Release
 
 ```bash
