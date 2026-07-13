@@ -31,6 +31,8 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | [0020](0020-backup-restore-s3-rclone.md) | Backup/Restore von Volumes in einen S3-Backup-Store (rclone) | Accepted |
 | [0021](0021-published-api-contract-openapi.md) | Publizierter, generierter API-Vertrag (OpenAPI) | Proposed |
 | [0022](0022-release-versioning-image-pipeline.md) | Release-Versionierung und Image-Pipeline (SemVer/Git-Tag, Buildpacks, GHCR) | Proposed |
+| [0023](0023-push-triggered-reconcile-and-trigger-auth.md) | Push-getriggertes Reconcile und authentifizierter Trigger-Endpoint | Proposed |
+| [0024](0024-delivered-image-secrets-encrypted-store.md) | Gelieferte Image/Container-Secrets und verschlüsselter lokaler Secret-Store | Proposed |
 
 > **Accepted** ADRs sind bindend. **Proposed** ADRs sind Entwürfe und werden erst nach
 > expliziter Freigabe auf **Accepted** gesetzt (siehe [../standards/adr.md](../standards/adr.md)).

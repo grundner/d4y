@@ -109,6 +109,24 @@ backup: true
 > Reconcile zum deklarierten `env` zurück. Werte können Geheimnisse enthalten und werden in
 > API/UI **nicht** ausgegeben (nur Schlüssel) — [privacy-rules](../rules/privacy-rules.md).
 
+### Secret-Platzhalter `${secret:NAME}`
+
+In `env`-Werten und im Registry-Passwort darf ein **Platzhalter** `${secret:NAME}` stehen, statt eines
+Klartext-Geheimnisses. Der Wert liegt **nicht** im Repo, sondern wird extern gehalten (z. B.
+GitHub-Actions-Secrets) und per authentifiziertem **Push** an d4y geliefert
+([ADR-0023](../decisions/0023-push-triggered-reconcile-and-trigger-auth.md),
+[ADR-0024](../decisions/0024-delivered-image-secrets-encrypted-store.md)). Beim Laden des Sollzustands
+löst d4y die Platzhalter aus seinem verschlüsselten Secret-Store auf. Ein **unauflösbarer** Platzhalter
+ist ein Fehler: die betroffene App wird übersprungen und auditiert — es gelangt nie ein Platzhalter an
+die Engine.
+
+```yaml
+name: private-app
+image: registry.example.com/team/app:1.4.2   # private Registry
+env:
+  API_TOKEN: ${secret:APP_API_TOKEN}
+```
+
 Mehrere Apps in einer Datei (Listen-Form):
 
 ```yaml
@@ -179,6 +197,9 @@ Abgleich für ein Ziel vorübergehend aus (weder Replace noch StopAndRemove).
 | `d4y.ingress.tls.acme.dns-provider`| *(leer)*    | Traefik-DNS-Provider (nur bei `challenge=dns`). |
 | `d4y.ingress.tls.acme.env.*`       | *(leer)*    | Zugangsdaten des DNS-Providers als Traefik-Container-Env (Geheimnisse). |
 | `d4y.ingress.tls.acme.ca-server`   | *(leer)*    | Optionaler alternativer ACME-CA-Server (z. B. Staging). |
+| `d4y.trigger.token`                | *(leer)*    | Bearer-Token für `POST /api/reconcile` (host-Credential). Leer ⇒ Endpoint deaktiviert ([ADR-0023](../decisions/0023-push-triggered-reconcile-and-trigger-auth.md)). |
+| `d4y.secrets.encryption-key`       | *(leer)*    | Schlüssel für den AES-GCM-verschlüsselten Secret-Store (host-Credential). Leer ⇒ gelieferte Secrets werden nur im RAM gehalten ([ADR-0024](../decisions/0024-delivered-image-secrets-encrypted-store.md)). |
+| `d4y.secrets.file`                 | `./.d4y-secrets` | Ablageort des verschlüsselten Secret-Stores. |
 
 ## Referenzen
 

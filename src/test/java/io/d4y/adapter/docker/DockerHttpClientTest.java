@@ -21,7 +21,9 @@ class DockerHttpClientTest {
                                 new D4yProperties.Acme("", "http", "", "", java.util.Map.of()))),
                 new D4yProperties.ConfigRepo("", "main", "", "./.d4y-config", 30000, "", ""),
                 new D4yProperties.Backup(300000,
-                        new D4yProperties.S3("", "", "us-east-1", "Other", "", "")));
+                        new D4yProperties.S3("", "", "us-east-1", "Other", "", "")),
+                new D4yProperties.Trigger(""),
+                new D4yProperties.Secrets("", "./.d4y-secrets"));
         return new DockerHttpClient(props);
     }
 

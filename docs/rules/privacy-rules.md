@@ -47,5 +47,16 @@ Im managed-Modus der DNS-Verwaltung sind die Zugangsdaten des
 Klartext-Protokollierung, keine Ausgabe in der Statusanzeige) und auf das für die
 Record-Verwaltung notwendige Maß zu beschränken.
 
+## PR-8 — Gelieferte Image/Container-Secrets
+
+Zugangsdaten, die Container/Images betreffen (Registry-Credentials, App-Env-Secrets), liegen
+**weder im Config-Repository noch in d4ys Properties**. Sie werden extern gehalten (z. B.
+GitHub-Actions-Secrets) und per **authentifiziertem Push über TLS** geliefert
+([ADR-0023](../decisions/0023-push-triggered-reconcile-and-trigger-auth.md),
+[ADR-0024](../decisions/0024-delivered-image-secrets-encrypted-store.md)). d4y persistiert sie
+ausschließlich **verschlüsselt** (AES-GCM) und gibt Secret-Werte sowie den `X-Registry-Auth`-Header
+**niemals** in Logs oder über die API/Statusanzeige aus. Der Verschlüsselungs-Schlüssel und das
+Trigger-Token sind host/d4y-Credentials und unterliegen PR-2/PR-4.
+
 > Konkrete Mechanismen zur Ablage und Verteilung von Geheimnissen sind eine
 > **Implementierungsentscheidung** und werden per ADR festgelegt.

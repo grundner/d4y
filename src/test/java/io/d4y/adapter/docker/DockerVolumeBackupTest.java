@@ -108,6 +108,8 @@ class DockerVolumeBackupTest {
                 new D4yProperties.Ingress(true, "d4y.internal", "extern",
                         new D4yProperties.Tls(new D4yProperties.Acme("", "http", "", "", Map.of()))),
                 new D4yProperties.ConfigRepo("", "main", "", "./.d4y-config", 30000, "", ""),
-                new D4yProperties.Backup(300000, s3));
+                new D4yProperties.Backup(300000, s3),
+                new D4yProperties.Trigger(""),
+                new D4yProperties.Secrets("", "./.d4y-secrets"));
     }
 }
