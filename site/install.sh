@@ -15,7 +15,7 @@
 # Sicherheit: Prüfe das Skript vor der Ausführung (curl ... -o install.sh; less install.sh).
 set -eu
 
-BUNDLE_URL="${D4Y_BUNDLE_URL:-https://github.com/grundner/d4y/releases/latest/download/d4y-linux-x86_64.tar.gz}"
+BUNDLE_URL="${D4Y_BUNDLE_URL:-}"   # leer ⇒ Default nach Architektur (siehe unten)
 INSTALL_DIR="/opt/d4y"
 DATA_DIR="/var/lib/d4y"
 ENV_FILE="/etc/d4y/d4y.env"
@@ -28,7 +28,12 @@ die() { echo "FEHLER: $*" >&2; exit 1; }
 ACME_EMAIL="${D4Y_ACME_EMAIL:-}"   # leer ⇒ HTTP-only (kein ACME/HTTPS), ADR-0028
 command -v curl >/dev/null 2>&1 || die "curl nicht gefunden."
 [ "$(uname -s)" = "Linux" ] || die "d4y läuft als Host-Bundle nur unter Linux."
-[ "$(uname -m)" = "x86_64" ] || die "Nur linux/x86_64-Bundle verfügbar (erkannt: $(uname -m))."
+case "$(uname -m)" in
+  x86_64|amd64)  BARCH="x86_64" ;;
+  aarch64|arm64) BARCH="aarch64" ;;
+  *) die "Nicht unterstützte Architektur: $(uname -m) (nur x86_64, aarch64)." ;;
+esac
+[ -n "$BUNDLE_URL" ] || BUNDLE_URL="https://github.com/grundner/d4y/releases/latest/download/d4y-linux-${BARCH}.tar.gz"
 command -v systemctl >/dev/null 2>&1 || die "systemd (systemctl) erforderlich."
 
 # Privileg für System-Installation und Docker bestimmen.
