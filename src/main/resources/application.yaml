@@ -21,6 +21,13 @@ d4y:
       max-seconds: 3600
     logs:
       default-tail: 200
+  # Push-Trigger (ADR-0023) + gelieferte Image/Container-Secrets (ADR-0024).
+  # host/d4y-Credentials — via Umgebungsvariablen setzen, NICHT ins Repo committen.
+  trigger:
+    token: ${D4Y_TRIGGER_TOKEN:}          # leer ⇒ POST /api/reconcile deaktiviert (fail-closed)
+  secrets:
+    encryption-key: ${D4Y_SECRETS_ENCRYPTION_KEY:}  # leer ⇒ gelieferte Secrets nur im RAM
+    file: ./.d4y-secrets                  # Ablage des AES-GCM-verschlüsselten Secret-Stores
 
 management:
   endpoints:

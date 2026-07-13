@@ -9,6 +9,8 @@ import io.d4y.domain.model.DesiredState;
 import io.d4y.domain.model.ImageRef;
 import io.d4y.domain.model.Route;
 import io.d4y.adapter.git.GitConfigSync;
+import io.d4y.app.SecretStore;
+import io.d4y.app.UnresolvedSecretException;
 import io.d4y.domain.model.VolumeMapping;
 import io.d4y.port.DesiredStateSource;
 import org.slf4j.Logger;
@@ -38,21 +40,30 @@ public class YamlDesiredStateSource implements DesiredStateSource {
 
     private final ObjectMapper yaml = new ObjectMapper(new YAMLFactory());
     private final Path directory;
+    private final SecretStore secretStore; // null ⇒ keine Platzhalter-Auflösung (einfache Tests)
 
     /**
      * Liest in Git-Modus (ADR-0019) aus dem Klon-Verzeichnis, sonst aus dem lokalen
-     * {@code desired/}-Fallback.
+     * {@code desired/}-Fallback. Löst {@code ${secret:NAME}}-Platzhalter aus dem
+     * {@link SecretStore} auf (ADR-0024).
      */
     @org.springframework.beans.factory.annotation.Autowired
-    public YamlDesiredStateSource(D4yProperties properties, GitConfigSync gitSync) {
+    public YamlDesiredStateSource(D4yProperties properties, GitConfigSync gitSync, SecretStore secretStore) {
         this.directory = gitSync.enabled()
                 ? gitSync.desiredDir()
                 : Path.of(properties.desiredState().path());
+        this.secretStore = secretStore;
     }
 
-    /** Lokaler Modus (für Tests). */
-    public YamlDesiredStateSource(D4yProperties properties) {
+    /** Lokaler Modus mit Secret-Auflösung (für Tests). */
+    public YamlDesiredStateSource(D4yProperties properties, SecretStore secretStore) {
         this.directory = Path.of(properties.desiredState().path());
+        this.secretStore = secretStore;
+    }
+
+    /** Lokaler Modus ohne Secret-Auflösung (für Tests). */
+    public YamlDesiredStateSource(D4yProperties properties) {
+        this(properties, (SecretStore) null);
     }
 
     @Override
@@ -79,12 +90,21 @@ public class YamlDesiredStateSource implements DesiredStateSource {
                 return;
             }
             if (root.isArray()) {
-                root.forEach(node -> sink.add(toApplication(node, file)));
+                root.forEach(node -> addApplication(node, file, sink));
             } else {
-                sink.add(toApplication(root, file));
+                addApplication(root, file, sink);
             }
         } catch (IOException e) {
             throw new UncheckedIOException("YAML nicht lesbar: " + file, e);
+        }
+    }
+
+    /** Fügt eine App hinzu; überspringt sie, wenn ein {@code ${secret:…}} noch nicht geliefert ist. */
+    private void addApplication(JsonNode node, Path file, List<Application> sink) {
+        try {
+            sink.add(toApplication(node, file));
+        } catch (UnresolvedSecretException e) {
+            log.warn("App aus {} übersprungen: Secret '{}' noch nicht verfügbar", file, e.secretName());
         }
     }
 
@@ -109,8 +129,13 @@ public class YamlDesiredStateSource implements DesiredStateSource {
             throw new IllegalArgumentException("Datei " + file + ": 'env' muss eine Map (Key/Value) sein");
         }
         Map<String, String> result = new LinkedHashMap<>();
-        env.fields().forEachRemaining(e -> result.put(e.getKey(), e.getValue().asText()));
+        env.fields().forEachRemaining(e -> result.put(e.getKey(), resolveSecrets(e.getValue().asText())));
         return result;
+    }
+
+    /** Löst {@code ${secret:NAME}}-Platzhalter auf, sofern ein SecretStore vorhanden ist (ADR-0024). */
+    private String resolveSecrets(String value) {
+        return secretStore == null ? value : secretStore.resolve(value);
     }
 
     private List<Route> toRoutes(JsonNode node, Path file) {

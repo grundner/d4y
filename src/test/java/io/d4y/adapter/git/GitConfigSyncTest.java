@@ -63,6 +63,8 @@ class GitConfigSyncTest {
                         new D4yProperties.Tls(new D4yProperties.Acme("", "http", "", "", Map.of()))),
                 new D4yProperties.ConfigRepo(url, "main", "", localDir, 30000, "", ""),
                 new D4yProperties.Backup(300000,
-                        new D4yProperties.S3("", "", "us-east-1", "Other", "", "")));
+                        new D4yProperties.S3("", "", "us-east-1", "Other", "", "")),
+                new D4yProperties.Trigger(""),
+                new D4yProperties.Secrets("", "./.d4y-secrets"));
     }
 }

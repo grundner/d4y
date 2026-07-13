@@ -19,6 +19,10 @@ target/
 # --- Lokaler Klon des Git-Config-Repos (ADR-0019) ---
 .d4y-config/
 
+# --- Verschlüsselter Secret-Store (ADR-0024) — niemals committen ---
+.d4y-secrets
+.d4y-secrets.tmp
+
 # --- Node / Next.js (vorausschauend; noch kein Frontend) ---
 node_modules/
 .next/

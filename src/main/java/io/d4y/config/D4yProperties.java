@@ -19,7 +19,9 @@ public record D4yProperties(
         @DefaultValue Operations operations,
         @DefaultValue Ingress ingress,
         @DefaultValue ConfigRepo configRepo,
-        @DefaultValue Backup backup) {
+        @DefaultValue Backup backup,
+        @DefaultValue Trigger trigger,
+        @DefaultValue Secrets secrets) {
 
     /** Anbindung an die Docker-Engine (HTTP über Unix-Socket). */
     public record Docker(
@@ -138,6 +140,30 @@ public record D4yProperties(
 
         public boolean configured() {
             return endpoint != null && !endpoint.isBlank() && bucket != null && !bucket.isBlank();
+        }
+    }
+
+    /**
+     * Push-Trigger-Endpoint {@code POST /api/reconcile} (ADR-0023). {@code token} ist ein
+     * host/d4y-Credential (kein Image-Secret). Leer ⇒ Endpoint deaktiviert (fail-closed).
+     */
+    public record Trigger(@DefaultValue("") String token) {
+
+        public boolean enabled() {
+            return token != null && !token.isBlank();
+        }
+    }
+
+    /**
+     * Verschlüsselter Secret-Store für gelieferte Image/Container-Secrets (ADR-0024).
+     * {@code encryptionKey} ist ein host/d4y-Credential; leer ⇒ gelieferte Secrets bleiben nur im RAM
+     * (keine Persistenz über Neustarts). {@code file} ist der Ablageort des verschlüsselten Stores.
+     */
+    public record Secrets(@DefaultValue("") String encryptionKey,
+                          @DefaultValue("./.d4y-secrets") String file) {
+
+        public boolean persistent() {
+            return encryptionKey != null && !encryptionKey.isBlank();
         }
     }
 }
