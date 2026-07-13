@@ -10,7 +10,9 @@ plugins {
 }
 
 group = "io.d4y"
-version = "0.1.0-SNAPSHOT"
+// ADR-0022: Git-Tag `vX.Y.Z` ist die Versions-Wahrheit. CI übergibt `-Pversion=${TAG#v}`;
+// zwischen Releases gilt die Dev-Default.
+version = providers.gradleProperty("version").getOrElse("0.1.0-SNAPSHOT")
 description = "D4Y — Git-native Runtime Platform"
 
 java {
@@ -18,6 +20,12 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+// ADR-0022: Version & Build-Zeit zur Laufzeit — füllt /actuator/info und liefert einen
+// BuildProperties-Bean (von OpenApiConfig für info.version genutzt).
+springBoot {
+    buildInfo()
 }
 
 repositories {
@@ -129,4 +137,12 @@ openApi {
     outputDir.set(layout.projectDirectory.dir("docs/api"))
     outputFileName.set("openapi.yaml")
     waitTimeInSeconds.set(60)
+}
+
+// ---- ADR-0022: OCI-Image via Cloud Native Buildpacks (kein Dockerfile) ----
+// `./gradlew bootBuildImage` erzeugt ghcr.io/grundner/d4y:<version> in den lokalen Docker-Daemon.
+// Das Frontend ist eingebettet (kein -PskipFrontend beim Image-Build). Publish: CI oder
+// `--publishImage` mit Registry-Credentials.
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootBuildImage>("bootBuildImage") {
+    imageName.set("ghcr.io/grundner/d4y:${project.version}")
 }

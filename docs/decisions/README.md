@@ -30,6 +30,7 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | [0019](0019-git-config-repository-source.md) | Sollzustand aus Git-Config-Repository (JGit, HTTPS) | Accepted |
 | [0020](0020-backup-restore-s3-rclone.md) | Backup/Restore von Volumes in einen S3-Backup-Store (rclone) | Accepted |
 | [0021](0021-published-api-contract-openapi.md) | Publizierter, generierter API-Vertrag (OpenAPI) | Proposed |
+| [0022](0022-release-versioning-image-pipeline.md) | Release-Versionierung und Image-Pipeline (SemVer/Git-Tag, Buildpacks, GHCR) | Proposed |
 
 > **Accepted** ADRs sind bindend. **Proposed** ADRs sind Entwürfe und werden erst nach
 > expliziter Freigabe auf **Accepted** gesetzt (siehe [../standards/adr.md](../standards/adr.md)).
