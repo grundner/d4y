@@ -43,9 +43,11 @@ Docker bleibt auf dem Host Pflicht.
    **Verwaltete App-Container bleiben beim Docker-Provider** ([ADR-0016](0016-reverse-proxy-traefik-docker-labels.md)) —
    der File-Provider gilt ausschließlich für d4ys eigene Route.
 
-5. **Auslieferung als GitHub-Release-Asset.** Die CI baut bei Tag `vX.Y.Z` das Bundle und hängt das
-   Tarball an das GitHub-Release. Der Installer lädt `…/releases/latest/download/…`, entpackt nach
-   `/opt/d4y`, legt Persistenz unter `/var/lib/d4y` an und richtet den systemd-Service ein. **Das
+5. **Auslieferung als GitHub-Release-Asset (Multi-Arch).** Die CI baut bei Tag `vX.Y.Z` das Bundle je
+   Zielarchitektur auf einem **nativen Runner** (Linux **x86_64** und **aarch64** — jlink/jpackage
+   können nicht cross-kompilieren) und hängt je ein Tarball `d4y-linux-<arch>.tar.gz` an das
+   GitHub-Release. Der Installer wählt nach `uname -m`, lädt `…/releases/latest/download/…`, entpackt
+   nach `/opt/d4y`, legt Persistenz unter `/var/lib/d4y` an und richtet den systemd-Service ein. **Das
    GHCR-Image entfällt** ([ADR-0022](0022-release-versioning-image-pipeline.md) abgelöst).
 
 Diese ADR **löst** [ADR-0006](0006-single-container-image-backend-frontend.md),
@@ -60,7 +62,8 @@ Diese ADR **löst** [ADR-0006](0006-single-container-image-backend-frontend.md),
 - **Positiv:** Ein Auslieferungsweg (Bundle) statt Image + Registry-Sichtbarkeitspflege; kein
   `unauthorized`-Risiko wie beim anonymen GHCR-Pull.
 - **Negativ:** Der Build wird komplexer (jlink-Modul-Set via `jdeps` pinnen, jpackage-Schritt) und ist
-  plattformgebunden (Linux/x86_64-Runner für das Linux-Bundle).
+  plattformgebunden — je Zielarchitektur ein nativer Runner (Linux x86_64 + aarch64), keine
+  Cross-Compilation.
 - **Negativ:** d4y hört auf dem Host auf `:8080` — erreichbar für Traefik via Host-Gateway, aber ohne
   Härtung auch lokal offen. **Härtung:** an die Docker-Bridge-Gateway-IP binden oder `:8080` per
   Firewall auf lokal beschränken.

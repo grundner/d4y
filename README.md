@@ -20,7 +20,7 @@ ist **Accepted**, andere noch **Proposed** (siehe [Index](docs/decisions/README.
 
 ## Installation (1-Zeiler)
 
-Auf einem Linux-Host (x86_64) mit öffentlichem DNS-A-Record ([ADR-0027](docs/decisions/0027-d4y-host-bundle-systemd.md)):
+Auf einem Linux-Host (x86_64 oder aarch64) mit öffentlichem DNS-A-Record ([ADR-0027](docs/decisions/0027-d4y-host-bundle-systemd.md)):
 
 ```bash
 D4Y_HOST=d4y.example.com D4Y_ACME_EMAIL=you@example.com \

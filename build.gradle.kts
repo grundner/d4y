@@ -51,10 +51,12 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:2.8.6")
 
     // Native Netty-Transports für Unix-Domain-Sockets:
-    //  - kqueue: macOS (Entwicklung), epoll: Linux (Produktion).
-    //  Netty-Klassifikatoren: aarch_64 / x86_64 (mit Unterstrich).
+    //  - kqueue: macOS (Entwicklung), epoll: Linux (Produktion, x86_64 + aarch64).
+    //  Netty-Klassifikatoren: aarch_64 / x86_64 (mit Unterstrich). Beide Linux-Klassifikatoren im
+    //  Bundle — Netty wählt den passenden zur Laufzeit (ADR-0027: Multi-Arch-Auslieferung).
     runtimeOnly("io.netty:netty-transport-native-kqueue::osx-aarch_64")
     runtimeOnly("io.netty:netty-transport-native-epoll::linux-x86_64")
+    runtimeOnly("io.netty:netty-transport-native-epoll::linux-aarch_64")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

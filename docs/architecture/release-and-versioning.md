@@ -39,11 +39,13 @@ Bundle mit eingebettetem Minimal-JRE — **kein System-Java** auf dem Ziel nöti
 |---|---|
 | Push auf `main` | nur `verify` (Build/Tests) |
 | Pull Request | nur `verify` (Build/Tests) |
-| Tag `vX.Y.Z` | Bundle bauen und als **GitHub-Release-Asset** `d4y-linux-x86_64.tar.gz` anhängen |
+| Tag `vX.Y.Z` | Bundle je Architektur bauen und als **GitHub-Release-Assets** `d4y-linux-x86_64.tar.gz` **und** `d4y-linux-aarch64.tar.gz` anhängen |
 
-Der `bundle`-Job (`permissions: contents: write`) lädt das Tarball per `gh release upload` an das
-Release `vX.Y.Z`. Der Installer bezieht es anonym über
-`https://github.com/grundner/d4y/releases/latest/download/d4y-linux-x86_64.tar.gz`. **Keine Registry,
+Der `bundle`-Job (`permissions: contents: write`) läuft als **Matrix über native Runner**
+(`ubuntu-latest` = x86_64, `ubuntu-24.04-arm` = aarch64), weil jlink/jpackage nicht cross-kompilieren.
+Jeder Job lädt sein arch-spezifisches Tarball per `gh release upload` an das Release `vX.Y.Z`. Der
+Installer wählt nach `uname -m` und bezieht es anonym über
+`https://github.com/grundner/d4y/releases/latest/download/d4y-linux-<arch>.tar.gz`. **Keine Registry,
 kein GHCR, keine Paket-Sichtbarkeit** mehr zu pflegen.
 
 ## Release-Schritte (Kurzform)
