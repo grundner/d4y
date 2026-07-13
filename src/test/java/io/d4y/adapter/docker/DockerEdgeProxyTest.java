@@ -142,12 +142,15 @@ class DockerEdgeProxyTest {
 
         p.writeSelfRoute();
 
-        String content = Files.readString(dir.resolve("d4y.json"));
+        // Traefik-File-Provider liest YAML (kein JSON) — Datei ist d4y.yml.
+        String content = Files.readString(dir.resolve("d4y.yml"));
         assertThat(content)
                 .contains("Host(`d4y.example.com`)")
                 .contains("http://host.docker.internal:8080")
                 .contains("websecure")
-                .contains("\"certResolver\" : \"le\"");
+                .contains("certResolver")
+                .contains("le");
+        assertThat(dir.resolve("d4y.json")).doesNotExist();
     }
 
     @Test
@@ -158,10 +161,10 @@ class DockerEdgeProxyTest {
 
         p.writeSelfRoute();
 
-        String content = Files.readString(dir.resolve("d4y.json"));
+        String content = Files.readString(dir.resolve("d4y.yml"));
         assertThat(content)
                 .contains("Host(`d4y.local`)")
-                .contains("\"web\"")
+                .contains("web")
                 .doesNotContain("websecure")
                 .doesNotContain("tls");
     }
@@ -172,6 +175,6 @@ class DockerEdgeProxyTest {
 
         p.writeSelfRoute();
 
-        assertThat(dir.resolve("d4y.json")).doesNotExist();
+        assertThat(dir.resolve("d4y.yml")).doesNotExist();
     }
 }
