@@ -13,9 +13,23 @@ Abweichungen automatisch und bleibt so dauerhaft selbstheilend.
 
 ## Status
 
-Frühe Phase — **dokumentationsgetrieben**. Es existiert derzeit **kein Code**; die
-Architektur- und Domänengrundlagen werden zuerst in `docs/` festgelegt. Die
-Architekturentscheidungen (ADRs) sind aktuell **Proposed** und noch nicht bindend.
+**Dokumentationsgetrieben** — Änderungen beginnen in `docs/`; nur **Accepted** ADRs sind bindend.
+Inzwischen existiert lauffähiger Code: ein Spring-Boot-Backend (`src/main/java/io/d4y/`) mit
+Reconciliation-Loop, REST-API unter `/api` und eingebettetem Next.js-Frontend. Ein Teil der ADRs
+ist **Accepted**, andere noch **Proposed** (siehe [Index](docs/decisions/README.md)).
+
+## Build & Release
+
+```bash
+./gradlew build            # Fat-Jar (Backend + eingebettetes Frontend); -PskipFrontend überspringt das Frontend
+./gradlew bootRun          # lokal starten → http://localhost:8080
+./gradlew bootBuildImage   # OCI-Image ghcr.io/grundner/d4y:<version> (Docker nötig)
+```
+
+Versionierung, Image-Build und Publish sind in
+[`docs/architecture/release-and-versioning.md`](docs/architecture/release-and-versioning.md)
+beschrieben ([ADR-0022](docs/decisions/0022-release-versioning-image-pipeline.md)): Git-Tag `vX.Y.Z`
+als Versions-Wahrheit, Images automatisch nach GHCR (Tag→Release, `main`→`edge`).
 
 ## Dokumentation
 

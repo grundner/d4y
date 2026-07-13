@@ -4,7 +4,7 @@ info:
   description: REST-API der d4y Git-native Runtime Platform. Read-only bezüglich des
     Sollzustands (ADR-0004); operative Aktionen sind transient (ADR-0013). Der Akteur
     wird über den Header X-Actor übermittelt.
-  version: 0.1.0
+  version: 0.1.0-SNAPSHOT
 servers:
 - url: http://localhost:8080
   description: Generated server url
