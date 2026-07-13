@@ -18,31 +18,46 @@ class PushedConfigStoreTest {
     }
 
     @Test
-    void writesDeliveredFilesToDesiredDir(@TempDir Path dir) throws Exception {
-        store(dir).replaceAll(Map.of("web.yaml", "name: web\nimage: nginx"));
-        assertThat(Files.readString(dir.resolve("web.yaml"))).contains("name: web");
+    void writesAppDirectoryTree(@TempDir Path dir) throws Exception {
+        store(dir).replaceAll(Map.of(
+                "web/compose.yaml", "services:\n  web:\n    image: nginx",
+                "web/d4y.yaml", "routes:\n  - service: web\n    host: web.test"));
+
+        assertThat(Files.readString(dir.resolve("web/compose.yaml"))).contains("image: nginx");
+        assertThat(Files.readString(dir.resolve("web/d4y.yaml"))).contains("web.test");
     }
 
     @Test
-    void removesFilesNoLongerDelivered(@TempDir Path dir) {
+    void fullReplaceRemovesFilesNoLongerDelivered(@TempDir Path dir) {
         PushedConfigStore s = store(dir);
-        s.replaceAll(Map.of("a.yaml", "name: a\nimage: x", "b.yml", "name: b\nimage: y"));
-        assertThat(dir.resolve("a.yaml")).exists();
-        assertThat(dir.resolve("b.yml")).exists();
+        s.replaceAll(Map.of("web/compose.yaml", "a", "api/compose.yaml", "b"));
+        assertThat(dir.resolve("web/compose.yaml")).exists();
+        assertThat(dir.resolve("api/compose.yaml")).exists();
 
-        s.replaceAll(Map.of("a.yaml", "name: a\nimage: z")); // b nicht mehr geliefert
-        assertThat(dir.resolve("a.yaml")).exists();
-        assertThat(dir.resolve("b.yml")).doesNotExist();
+        s.replaceAll(Map.of("web/compose.yaml", "a2")); // api nicht mehr geliefert
+        assertThat(dir.resolve("web/compose.yaml")).exists();
+        assertThat(dir.resolve("api")).doesNotExist();
     }
 
     @Test
-    void rejectsPathTraversalAndForeignNames(@TempDir Path dir) {
+    void allowsSubdirectoriesAndArbitraryFileTypes(@TempDir Path dir) throws Exception {
+        store(dir).replaceAll(Map.of(
+                "app/compose.yaml", "x",
+                "app/Dockerfile", "FROM scratch",
+                "app/conf/nginx.conf", "server {}"));
+
+        assertThat(dir.resolve("app/Dockerfile")).exists();
+        assertThat(Files.readString(dir.resolve("app/conf/nginx.conf"))).contains("server");
+    }
+
+    @Test
+    void rejectsPathTraversalAndAbsolutePaths(@TempDir Path dir) {
         PushedConfigStore s = store(dir);
         assertThatThrownBy(() -> s.replaceAll(Map.of("../evil.yaml", "x")))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> s.replaceAll(Map.of("sub/evil.yaml", "x")))
+        assertThatThrownBy(() -> s.replaceAll(Map.of("web/../../evil", "x")))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> s.replaceAll(Map.of("evil.txt", "x")))
+        assertThatThrownBy(() -> s.replaceAll(Map.of("/etc/passwd", "x")))
                 .isInstanceOf(IllegalArgumentException.class);
         // Nichts wurde geschrieben — Validierung greift vor jedem Schreibzugriff.
         assertThat(dir.resolve("evil.yaml")).doesNotExist();

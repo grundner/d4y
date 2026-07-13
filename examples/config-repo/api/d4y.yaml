@@ -1,0 +1,9 @@
+routes:
+  - service: api
+    host: api.d4y.test
+    port: 8080          # die App lauscht intern auf 8080
+    tls: true           # HTTPS erzwingen (mit ACME echtes Zertifikat, sonst self-signed)
+
+# Das Named Volume 'data' dieser App sichern (benoetigt einen S3-Store am d4y-Host).
+backup:
+  volumes: [data]

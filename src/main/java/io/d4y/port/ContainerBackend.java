@@ -1,34 +1,16 @@
 package io.d4y.port;
 
 import io.d4y.domain.model.ContainerDetails;
-import io.d4y.domain.model.ContainerSpec;
 import io.d4y.domain.model.ExecResult;
-import io.d4y.domain.model.ImageRef;
-import io.d4y.domain.model.ObservedContainer;
 
 import java.util.List;
 
 /**
- * Engine-neutraler Port zur Steuerung einer Container-Engine (ADR-0005).
- *
- * <p>Die Kernlogik spricht ausschließlich gegen diesen Port; Engine-Spezifika leben im Adapter
- * (erste Implementierung: Docker).
+ * Engine-neutraler Port für <b>container-nahe operative Aktionen</b> (ADR-0005/0013): Lifecycle-Nudges
+ * und Inspektion auf einer Container-ID. Das Deployment selbst läuft über Docker Compose (ADR-0029),
+ * nicht über diesen Port.
  */
 public interface ContainerBackend {
-
-    /** Liefert die aktuell von D4Y verwalteten Container (Ist-Zustand). */
-    List<ObservedContainer> observe();
-
-    /** Stellt sicher, dass das Image lokal verfügbar ist (Pull, falls nötig). */
-    void ensureImage(ImageRef image);
-
-    /** Erzeugt und startet einen Container gemäß Spezifikation; liefert dessen ID. */
-    String run(ContainerSpec spec);
-
-    /** Stoppt und entfernt den Container mit der angegebenen ID. */
-    void stopAndRemove(String containerId);
-
-    // --- Operative Aktionen (ADR-0013) ---------------------------------------------------
 
     /** Startet den Container neu. */
     void restart(String containerId);

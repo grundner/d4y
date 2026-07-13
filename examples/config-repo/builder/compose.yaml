@@ -1,0 +1,6 @@
+# Beispiel mit Bauen auf dem Ziel (ADR-0029): statt eines vorgebauten Images baut d4y das
+# Image aus dem Dockerfile im App-Verzeichnis. Fuer schwere/binaere Kontexte besser vorbauen.
+services:
+  app:
+    build: .            # nutzt ./Dockerfile + dieses Verzeichnis als Build-Kontext
+    restart: unless-stopped

@@ -374,47 +374,27 @@ components:
       properties:
         name:
           type: string
-        serviceName:
-          type: string
-        desiredImage:
-          type: string
         state:
-          type: string
-        running:
-          type: boolean
-        containerId:
           type: string
         hold:
           $ref: "#/components/schemas/HoldInfo"
-        volumes:
+        services:
           type: array
           items:
-            $ref: "#/components/schemas/VolumeInfo"
+            $ref: "#/components/schemas/ServiceStatus"
         routes:
           type: array
           items:
             $ref: "#/components/schemas/RouteInfo"
-        envKeys:
-          type: array
-          items:
-            type: string
-        backup:
-          type: boolean
-    ExtraContainer:
+    ExtraProject:
       type: object
       properties:
-        appName:
+        name:
           type: string
-        image:
-          type: string
-        containerId:
-          type: string
-        running:
-          type: boolean
-        volumes:
+        services:
           type: array
           items:
-            $ref: "#/components/schemas/VolumeInfo"
+            $ref: "#/components/schemas/ServiceStatus"
     HoldInfo:
       type: object
       properties:
@@ -433,6 +413,17 @@ components:
         port:
           type: integer
           format: int32
+        tls:
+          type: boolean
+    ServiceStatus:
+      type: object
+      properties:
+        name:
+          type: string
+        image:
+          type: string
+        state:
+          type: string
     StatusResponse:
       type: object
       properties:
@@ -445,14 +436,7 @@ components:
         undeclared:
           type: array
           items:
-            $ref: "#/components/schemas/ExtraContainer"
-    VolumeInfo:
-      type: object
-      properties:
-        name:
-          type: string
-        path:
-          type: string
+            $ref: "#/components/schemas/ExtraProject"
     ConfigView:
       type: object
       properties:

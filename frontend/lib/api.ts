@@ -1,51 +1,47 @@
 "use client";
 
 import * as React from "react";
-import type { AppState } from "./types";
+import type { AppRuntimeState, OverallState } from "./types";
 
-// Schema von GET /api/status (siehe Backend StatusController).
+// Schema von GET /api/status (siehe Backend StatusController, ADR-0029: Docker Compose).
+// Eine "Application" ist ein Compose-Projekt mit mehreren Services.
 export interface StatusHold {
   type: string;
   remainingSeconds: number;
 }
 
-export interface StatusVolume {
+/** Ein Service (Container) innerhalb eines Compose-Projekts. */
+export interface StatusService {
   name: string;
-  path: string;
+  image: string;
+  /** Docker-Container-Zustand, z. B. "running", "exited", "created". */
+  state: string;
 }
 
 export interface StatusRoute {
   host: string;
   path: string;
   port: number;
+  /** true → HTTPS (TLS terminiert am Reverse Proxy), false → HTTP. */
+  tls: boolean;
 }
 
 export interface StatusApp {
   name: string;
-  serviceName: string;
-  desiredImage: string;
-  state: AppState;
-  running: boolean;
-  containerId: string | null;
-  hold?: StatusHold | null;
-  volumes: StatusVolume[];
+  state: AppRuntimeState;
+  hold: StatusHold | null;
+  services: StatusService[];
   routes: StatusRoute[];
-  /** Schlüssel der deklarierten Umgebungsvariablen (ohne Werte). */
-  envKeys: string[];
-  /** true, wenn für die App ein Backup deklariert ist. */
-  backup: boolean;
 }
 
+/** Ein Compose-Projekt, das läuft, aber nicht im Config-Repo deklariert ist. */
 export interface StatusUndeclared {
-  appName: string;
-  image: string;
-  containerId: string;
-  running: boolean;
-  volumes: StatusVolume[];
+  name: string;
+  services: StatusService[];
 }
 
 export interface StatusResponse {
-  overall: string;
+  overall: OverallState;
   applications: StatusApp[];
   undeclared: StatusUndeclared[];
 }

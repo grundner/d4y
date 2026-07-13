@@ -1,12 +1,14 @@
-export type AppState =
-  | "IN_SYNC"
-  | "DRIFT"
-  | "OUTDATED"
-  | "MISSING"
-  | "STOPPED"
-  | "RECONCILING"
-  | "HOLD"
-  | "ERROR";
+/** Gesamtzustand der Plattform (StatusResponse.overall). */
+export type OverallState = "IN_SYNC" | "DRIFT";
+
+/** Laufzeitzustand eines Compose-Projekts (ADR-0029). */
+export type AppRuntimeState = "RUNNING" | "PARTIAL" | "STOPPED" | "MISSING";
+
+/**
+ * Alle vom StatusChip darstellbaren Zustände: der Laufzeitzustand einer App
+ * sowie der Plattform-Gesamtzustand.
+ */
+export type AppState = OverallState | AppRuntimeState;
 
 export type HoldType = "temp-param" | "stop" | "hold";
 
@@ -16,41 +18,36 @@ export interface Hold {
   secs: number;
 }
 
-export interface Volume {
+/** Ein Service (Container) innerhalb eines Compose-Projekts. */
+export interface ServiceStatus {
   name: string;
-  type: "Named" | "Bind";
-  persist: string;
-  backup: boolean;
-  store: string;
-  restore: string;
+  image: string;
+  /** Docker-Container-Zustand, z. B. "running", "exited", "created". */
+  state: string;
 }
 
-export interface TempParam {
-  key: string;
-  value: string;
-  by: string;
-  since: string;
+/** Eine deklarierte Route (externer Ingress) eines Projekts. */
+export interface Route {
+  host: string;
+  path: string;
+  port: number;
+  /** true → HTTPS, false → HTTP. */
+  tls: boolean;
 }
 
+/** Eine Application ist ein Compose-Projekt mit mehreren Services. */
 export interface Application {
   name: string;
-  image: string;
-  actualImage?: string;
-  state: AppState;
-  running: boolean;
-  routes: string[];
-  backup: boolean;
-  containerId: string | null;
-  server: string;
+  state: AppRuntimeState;
   hold: Hold | null;
-  volumes: Volume[];
-  tempParams: TempParam[];
+  services: ServiceStatus[];
+  routes: Route[];
 }
 
-export interface UndeclaredContainer {
-  appName: string;
-  image: string;
-  containerId: string;
+/** Ein Compose-Projekt ohne Deklaration im Config-Repo. */
+export interface ExtraProject {
+  name: string;
+  services: ServiceStatus[];
 }
 
 export interface ActivityEntry {
