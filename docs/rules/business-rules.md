@@ -6,22 +6,24 @@ des jeweiligen Dokuments in [`../domain/`](../domain/).
 
 ## BR-1 — Sollzustand-Änderungen nur über das Config-Repository
 
-Jede Änderung am **deklarativen Sollzustand** (welche Apps, Images, Routes, Volumes) erfolgt
-ausschließlich über das [Config-Repository](../domain/config-repository.md). API und UI dürfen
-den Sollzustand **niemals** ändern. → [ADR-0001](../decisions/0001-git-as-single-source-of-truth.md)
+Jede Änderung am **deklarativen Sollzustand** (die Compose-App-Verzeichnisse: `compose.yaml` +
+Sidecar `d4y.yaml`) erfolgt ausschließlich über das [Config-Repository](../domain/config-repository.md).
+API und UI dürfen den Sollzustand **niemals** ändern. → [ADR-0001](../decisions/0001-git-as-single-source-of-truth.md)
 
 Davon unberührt sind [operative Aktionen](../domain/operational-action.md) (Restart, Debugging,
 temporäre Parameter), die den Sollzustand nicht verändern — siehe BR-11/BR-12.
 
-## BR-2 — Kein Build auf dem Zielsystem
+## BR-2 — Quellformat Docker Compose; Bezug aus Registry oder Build auf dem Ziel
 
-Anwendungen werden niemals auf dem Zielsystem gebaut, sondern ausschließlich als
-unveränderliche Images bereitgestellt. → [ADR-0002](../decisions/0002-immutable-images-no-build-on-target.md)
+Apps werden im **Docker-Compose-Format** deklariert (je App ein Verzeichnis mit `compose.yaml`).
+Images werden aus [Registries](../domain/registry.md) bezogen **oder** auf dem Ziel gebaut (`build:`).
+→ [ADR-0029](../decisions/0029-docker-compose-single-source-format.md)
 
-## BR-3 — Nur vertrauenswürdige Registries
+## BR-3 — Vertrauenswürdige Registries; bewusster Build
 
-Es werden ausschließlich Images aus vertrauenswürdigen [Registries](../domain/registry.md)
-bezogen.
+Bezogene Images stammen aus vertrauenswürdigen [Registries](../domain/registry.md). Wird auf dem Ziel
+gebaut, ist das eine bewusste, im Compose deklarierte Entscheidung.
+→ [ADR-0029](../decisions/0029-docker-compose-single-source-format.md)
 
 ## BR-4 — Soll hat Vorrang
 
@@ -54,9 +56,10 @@ Volume und überschreibt **niemals** bestehende Live-Daten.
 
 ## BR-9 — Ingress und DNS sind deklarativ
 
-[Routes](../domain/route.md) (Ingress) und die DNS-Verwaltung werden ausschließlich deklarativ
-im [Config-Repository](../domain/config-repository.md) beschrieben; Änderungen erfolgen nur dort.
-→ [ADR-0010](../decisions/0010-dns-ingress-service-discovery.md)
+Ingress (Routes) und die DNS-Verwaltung werden ausschließlich deklarativ im
+[Config-Repository](../domain/config-repository.md) beschrieben — im Compose-Modell über die
+Sidecar-`d4y.yaml` (bzw. direkte Traefik-Labels); Änderungen erfolgen nur dort.
+→ [ADR-0010](../decisions/0010-dns-ingress-service-discovery.md), [ADR-0029](../decisions/0029-docker-compose-single-source-format.md)
 
 ## BR-10 — Keine Abhängigkeit von einer konkreten Server-IP
 

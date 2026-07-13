@@ -10,7 +10,7 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | ADR | Titel | Status |
 | --- | --- | --- |
 | [0001](0001-git-as-single-source-of-truth.md) | Git als einzige Quelle der Wahrheit | Accepted |
-| [0002](0002-immutable-images-no-build-on-target.md) | Unveränderliche Images, kein Build auf dem Zielsystem | Proposed |
+| [0002](0002-immutable-images-no-build-on-target.md) | Unveränderliche Images, kein Build auf dem Zielsystem | Superseded by 0029 |
 | [0003](0003-java21-spring-boot-backend.md) | Backend auf Basis von Java 21 und Spring Boot | Accepted |
 | [0004](0004-nextjs-react-readonly-frontend.md) | Frontend Next.js/React — Sollzustand read-only, operative Aktionen erlaubt | Proposed |
 | [0005](0005-container-backend-abstraction-docker-first.md) | Container-Backend-Abstraktion, Docker zuerst | Accepted |
@@ -37,6 +37,7 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | [0026](0026-one-liner-bootstrap-github.md) | 1-Zeiler-Bootstrap und Verteilung über GitHub | Superseded by 0027 |
 | [0027](0027-d4y-host-bundle-systemd.md) | d4y als selbst-enthaltendes Host-Bundle (jlink) unter systemd | Proposed |
 | [0028](0028-per-route-tls-and-http-mode.md) | Pro-Route-TLS und HTTP-Betrieb ohne öffentliche IP | Proposed |
+| [0029](0029-docker-compose-single-source-format.md) | Docker Compose als einziges Quellformat (`docker compose`-CLI) | Proposed |
 
 > **Accepted** ADRs sind bindend. **Proposed** ADRs sind Entwürfe und werden erst nach
 > expliziter Freigabe auf **Accepted** gesetzt (siehe [../standards/adr.md](../standards/adr.md)).

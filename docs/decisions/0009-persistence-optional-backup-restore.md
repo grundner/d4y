@@ -4,6 +4,11 @@ Status: Proposed
 Datum: 2026-07-06
 Betrifft: [volume](../domain/volume.md), [backup](../domain/backup.md), [backup-store](../domain/backup-store.md), [server](../domain/server.md), [architecture/persistence-and-backup](../architecture/persistence-and-backup.md)
 
+> **Ergänzt durch [ADR-0029](0029-docker-compose-single-source-format.md):** Volumes werden nun in
+> **Docker Compose** deklariert (Compose-Syntax, inkl. Bind-Mounts, wo sinnvoll) — die strikte
+> „nur Named Volumes"-Vorgabe entfällt. Die Backup-Semantik (opt-in, Restore nur in leeres Volume)
+> bleibt; das Opt-in steht in der Sidecar-`d4y.yaml`, Discovery über die Compose-Volume-Namen.
+
 ## Kontext
 
 D4Y-Server sind austauschbar und zustandslos; eine frische Maschine soll ihre Laufzeitumgebung

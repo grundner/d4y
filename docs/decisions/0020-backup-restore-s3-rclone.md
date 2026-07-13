@@ -4,6 +4,10 @@ Status: Accepted
 Datum: 2026-07-10
 Betrifft: [backup](../domain/backup.md), [backup-store](../domain/backup-store.md), [volume](../domain/volume.md), [architecture/persistence-and-backup](../architecture/persistence-and-backup.md), [ADR-0009](0009-persistence-optional-backup-restore.md)
 
+> **Ergänzt durch [ADR-0029](0029-docker-compose-single-source-format.md):** Der rclone→S3-Mechanismus
+> bleibt; die Volume-Discovery erfolgt nun über die **Compose-Projekt-/Volume-Namen** und das
+> `backup`-Opt-in in der Sidecar-`d4y.yaml` (statt über das `d4y_<app>_<name>`-Namensschema).
+
 ## Kontext
 
 [ADR-0009](0009-persistence-optional-backup-restore.md) legt fest, dass Volume-Daten **optional pro

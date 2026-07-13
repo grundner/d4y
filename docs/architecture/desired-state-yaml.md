@@ -5,6 +5,12 @@ Bezug: [ADR-0019](../decisions/0019-git-config-repository-source.md),
 [ADR-0001](../decisions/0001-git-as-single-source-of-truth.md),
 [config-repository](../domain/config-repository.md), [reconciliation-loop](reconciliation-loop.md)
 
+> **Abgelöst durch [ADR-0029](../decisions/0029-docker-compose-single-source-format.md):** Das hier
+> beschriebene proprietäre Einzel-YAML (`name/image/routes/volumes/env/backup`, ein Container pro App)
+> ist **nicht mehr das Quellformat**. Der Sollzustand besteht jetzt aus **Docker-Compose-Projekten**
+> (je App ein Verzeichnis mit `compose.yaml` + Sidecar `d4y.yaml`) — siehe
+> [compose-app-format.md](compose-app-format.md). Dieses Dokument bleibt als **historische Referenz**.
+
 D4Y liest den **Sollzustand** — welche Anwendungen mit welchem Image, welchen Volumes und Routes
 laufen sollen — aus deklarativen **YAML-Dateien**. Dieses Dokument beschreibt deren **Struktur** und
 wie D4Y sie **verarbeitet**.
@@ -200,7 +206,6 @@ Abgleich für ein Ziel vorübergehend aus (weder Replace noch StopAndRemove).
 | `d4y.backup.s3.endpoint` / `.bucket` | *(leer)*  | S3-Backup-Store. Gesetzt ⇒ Backup aktiv (App opt-in via `backup: true`). |
 | `d4y.backup.s3.region` / `.provider` | `us-east-1` / `Other` | S3-Region und rclone-Provider (z. B. `Minio`, `AWS`). |
 | `d4y.backup.s3.access-key` / `.secret-key` | *(leer)* | S3-Zugangsdaten (Geheimnisse). |
-| `d4y.ingress.https-redirect`       | `true`      | HTTP→HTTPS-Redirect am Reverse Proxy. |
 | `d4y.ingress.internal-domain`      | `d4y.internal` | Interne DNS-Domain für Service-Discovery-Aliase (`<app>.<domain>`). |
 | `d4y.ingress.dns-mode`             | `extern`    | Öffentliche DNS-Verwaltung: `extern` (D4Y fasst DNS nicht an) oder `managed` (Platzhalter). |
 | `d4y.ingress.tls.acme.email`       | *(leer)*    | Gesetzt ⇒ ACME/Let's-Encrypt aktiv; leer ⇒ self-signed Default-Zertifikat. |
@@ -208,6 +213,8 @@ Abgleich für ein Ziel vorübergehend aus (weder Replace noch StopAndRemove).
 | `d4y.ingress.tls.acme.dns-provider`| *(leer)*    | Traefik-DNS-Provider (nur bei `challenge=dns`). |
 | `d4y.ingress.tls.acme.env.*`       | *(leer)*    | Zugangsdaten des DNS-Providers als Traefik-Container-Env (Geheimnisse). |
 | `d4y.ingress.tls.acme.ca-server`   | *(leer)*    | Optionaler alternativer ACME-CA-Server (z. B. Staging). |
+| `d4y.ingress.tls.default-enabled`  | *(leer)*    | Standard-TLS pro Route/Selbst-Route ([ADR-0028](../decisions/0028-per-route-tls-and-http-mode.md)); leer ⇒ aus ACME abgeleitet (ACME ⇒ HTTPS, sonst HTTP-only). Pro Route via `tls:` überschreibbar. |
+| `d4y.ingress.self.tls`             | *(leer)*    | TLS der d4y-eigenen Route; leer ⇒ globaler Default. |
 | `d4y.trigger.token`                | *(leer)*    | Bearer-Token für `POST /api/reconcile` (host-Credential). Leer ⇒ Endpoint deaktiviert ([ADR-0023](../decisions/0023-push-triggered-reconcile-and-trigger-auth.md)). |
 | `d4y.secrets.encryption-key`       | *(leer)*    | Schlüssel für den AES-GCM-verschlüsselten Secret-Store (host-Credential). Leer ⇒ gelieferte Secrets werden nur im RAM gehalten ([ADR-0024](../decisions/0024-delivered-image-secrets-encrypted-store.md)). |
 | `d4y.secrets.file`                 | `./.d4y-secrets` | Ablageort des verschlüsselten Secret-Stores. |

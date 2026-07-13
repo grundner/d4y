@@ -4,6 +4,10 @@ Status: Accepted
 Datum: 2026-07-09
 Betrifft: [config-repository](../domain/config-repository.md), [desired-vs-actual-state](../domain/desired-vs-actual-state.md), [ADR-0001](0001-git-as-single-source-of-truth.md), [ADR-0006](0006-single-container-image-backend-frontend.md), [ADR-0011](0011-interim-local-desired-state-source.md)
 
+> **Ergänzt durch [ADR-0029](0029-docker-compose-single-source-format.md):** Der Git-/Push-Bezug bleibt,
+> aber das gelesene Modell ist nun **ein Docker-Compose-Verzeichnis je App** (`compose.yaml` + Sidecar
+> `d4y.yaml`) statt des proprietären `name/image/routes/volumes`-YAML.
+
 ## Kontext
 
 [ADR-0001](0001-git-as-single-source-of-truth.md) (Accepted) legt fest, dass der Sollzustand

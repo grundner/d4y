@@ -1,5 +1,10 @@
 # Domäne — Application
 
+> **Geändert durch [ADR-0029](../decisions/0029-docker-compose-single-source-format.md):** Eine
+> Application ist nun ein **Docker-Compose-Projekt** (je App ein Verzeichnis mit `compose.yaml`) und
+> kann **mehrere Services/Container** umfassen. Images werden bezogen **oder** auf dem Ziel gebaut
+> (`build:`). Die frühere „genau ein Image/Container pro App"-Regel gilt nicht mehr.
+
 Eine **Application** ist eine containerisierte Anwendung, die auf der Plattform laufen soll.
 Sie wird im [Config-Repository](config-repository.md) deklarativ beschrieben.
 

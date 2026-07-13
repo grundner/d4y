@@ -2,6 +2,11 @@
 
 Status: Draft
 
+> **Geändert durch [ADR-0029](../decisions/0029-docker-compose-single-source-format.md):** Das
+> Quellformat ist **Docker Compose** (je App ein Verzeichnis); d4y führt es über die
+> **`docker compose`-CLI** aus (Bauen auf dem Ziel erlaubt). Details:
+> [compose-app-format.md](compose-app-format.md).
+
 D4Y ist eine schlanke **Runtime-Schicht** über einer Container-Engine. Sie liest den
 Sollzustand aus einem Git-Konfigurationsrepository, gleicht ihn kontinuierlich mit dem
 tatsächlichen Zustand der Maschine ab und stellt den Sollzustand ohne manuelle Eingriffe her.

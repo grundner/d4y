@@ -4,6 +4,11 @@ Status: Proposed
 Datum: 2026-07-13
 Betrifft: [ADR-0017](0017-tls-https-ingress.md), [ADR-0016](0016-reverse-proxy-traefik-docker-labels.md), [ADR-0027](0027-d4y-host-bundle-systemd.md), [route](../domain/route.md), [architecture/networking-and-dns](../architecture/networking-and-dns.md), [architecture/desired-state-yaml](../architecture/desired-state-yaml.md)
 
+> **Ergänzt durch [ADR-0029](0029-docker-compose-single-source-format.md):** Die TLS-Logik (pro Route
+> `tls`, globaler Default aus ACME, kein Auto-Redirect) bleibt, aber die Route steht nun in der
+> Sidecar-`d4y.yaml` (nicht mehr im proprietären `routes[]`-Feld); d4y setzt die Traefik-TLS-Labels
+> über das generierte Override.
+
 ## Kontext
 
 [ADR-0017](0017-tls-https-ingress.md) macht HTTPS zum First-Class-Ingress: jede Route wird auf

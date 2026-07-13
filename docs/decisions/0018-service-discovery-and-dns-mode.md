@@ -4,6 +4,10 @@ Status: Accepted
 Datum: 2026-07-09
 Betrifft: [service-discovery](../domain/service-discovery.md), [dns-provider](../domain/dns-provider.md), [route](../domain/route.md), [architecture/networking-and-dns](../architecture/networking-and-dns.md), [ADR-0010](0010-dns-ingress-service-discovery.md), [ADR-0016](0016-reverse-proxy-traefik-docker-labels.md)
 
+> **Ergänzt durch [ADR-0029](0029-docker-compose-single-source-format.md):** Service-Discovery-Aliase
+> entstehen nun über die Mitgliedschaft der Compose-Services im externen `d4y`-Netz (per generiertem
+> Override), nicht mehr durch direkte Alias-Injektion beim Container-Create.
+
 ## Kontext
 
 [ADR-0010](0010-dns-ingress-service-discovery.md) trennt drei Netzwerk-Ebenen: interne

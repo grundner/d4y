@@ -1,5 +1,9 @@
 # Domäne — Container-Image
 
+> **Geändert durch [ADR-0029](../decisions/0029-docker-compose-single-source-format.md):** Images
+> werden aus Registries **bezogen** oder auf dem Ziel **gebaut** (`build:` in Compose). Die frühere
+> Regel „niemals auf dem Zielsystem gebaut" gilt nicht mehr.
+
 Ein **Container-Image** ist ein unveränderliches Artefakt, aus dem eine
 [Application](application.md) bereitgestellt wird.
 
