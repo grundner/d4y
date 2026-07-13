@@ -18,6 +18,11 @@ d4y:
   ingress:
     # ADR-0027: d4y läuft direkt auf dem Host. Die eigene Traefik-Route wird über den File-Provider
     # deklariert (Ziel = Host-Gateway). host leer ⇒ keine Selbst-Route (lokaler/Dev-Betrieb).
+    #
+    # ADR-0028: TLS ist pro Route/Selbst-Route schaltbar. Ohne ACME-Mail (d4y.ingress.tls.acme.email)
+    # ist der Default HTTP-only (VM ohne Public IP) — d4y + Apps sind sofort per http:// erreichbar.
+    # Überschreiben per Env: D4Y_INGRESS_TLS_DEFAULT_ENABLED, D4Y_INGRESS_SELF_TLS (true|false),
+    # je Route via 'tls: true|false' im Desired-State (siehe docs/architecture/desired-state-yaml.md).
     self:
       host: ${D4Y_HOST:}
       target: ${D4Y_INGRESS_SELF_TARGET:http://host.docker.internal:8080}

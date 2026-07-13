@@ -77,8 +77,7 @@ public record D4yProperties(
      * @param internalDomain interne DNS-Domain für Service-Discovery-Aliase (`<app>.<domain>`)
      * @param dnsMode öffentliche DNS-Verwaltung: {@code extern} (Default) oder {@code managed}
      */
-    public record Ingress(@DefaultValue("true") boolean httpsRedirect,
-                          @DefaultValue("d4y.internal") String internalDomain,
+    public record Ingress(@DefaultValue("d4y.internal") String internalDomain,
                           @DefaultValue("extern") String dnsMode,
                           @DefaultValue Self self,
                           @DefaultValue Tls tls) {
@@ -101,15 +100,30 @@ public record D4yProperties(
      */
     public record Self(@DefaultValue("") String host,
                        @DefaultValue("http://host.docker.internal:8080") String target,
-                       @DefaultValue("/var/lib/d4y/traefik-dynamic") String dynamicDir) {
+                       @DefaultValue("/var/lib/d4y/traefik-dynamic") String dynamicDir,
+                       Boolean tls) {
 
         /** Selbst-Route aktiv, sobald ein Host gesetzt ist (Host-Betrieb). */
         public boolean enabled() {
             return host != null && !host.isBlank();
         }
+
+        /** Effektives TLS der Selbst-Route (ADR-0028): explizit, sonst globaler Default. */
+        public boolean tlsEnabled(boolean defaultEnabled) {
+            return tls != null ? tls : defaultEnabled;
+        }
     }
 
-    public record Tls(@DefaultValue Acme acme) {
+    /**
+     * TLS-Konfiguration (ADR-0017/0028). {@code defaultEnabled} steuert das Standard-TLS pro Route und
+     * für die Selbst-Route, wenn diese nichts angeben: explizit gesetzt, sonst abgeleitet aus ACME.
+     * Ohne ACME-Mail ⇒ {@code false} ⇒ reiner HTTP-Betrieb (VM ohne Public IP).
+     */
+    public record Tls(Boolean defaultEnabled, @DefaultValue Acme acme) {
+
+        public boolean effectiveDefault() {
+            return defaultEnabled != null ? defaultEnabled : acme.enabled();
+        }
     }
 
     /**

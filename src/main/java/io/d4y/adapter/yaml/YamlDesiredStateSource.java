@@ -154,8 +154,11 @@ public class YamlDesiredStateSource implements DesiredStateSource {
             }
             JsonNode path = r.get("path");
             JsonNode port = r.get("port");
+            // ADR-0028: optionales 'tls' pro Route; fehlt es, greift der globale Default.
+            JsonNode tls = r.get("tls");
+            Boolean tlsValue = (tls == null || tls.isNull()) ? null : tls.asBoolean();
             result.add(new Route(host.asText(), path == null ? null : path.asText(),
-                    port == null ? 80 : port.asInt(80)));
+                    port == null ? 80 : port.asInt(80), tlsValue));
         }
         return result;
     }

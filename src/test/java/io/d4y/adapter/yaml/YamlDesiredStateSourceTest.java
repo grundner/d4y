@@ -108,6 +108,24 @@ class YamlDesiredStateSourceTest {
     }
 
     @Test
+    void parsesPerRouteTls(@TempDir Path dir) throws IOException {
+        // ADR-0028: optionales 'tls' pro Route; fehlt es, bleibt es null (globaler Default).
+        Files.writeString(dir.resolve("web.yaml"),
+                "name: web\nimage: nginx:1.27-alpine\nroutes:\n"
+                        + "  - host: secure.example.com\n    tls: true\n"
+                        + "  - host: plain.example.com\n    tls: false\n"
+                        + "  - host: default.example.com\n");
+
+        DesiredState state = new YamlDesiredStateSource(propsFor(dir)).load();
+
+        assertThat(state.applications()).singleElement()
+                .satisfies(a -> assertThat(a.routes())
+                        .extracting(r -> r.host() + "=" + r.tls())
+                        .containsExactly("secure.example.com=true", "plain.example.com=false",
+                                "default.example.com=null"));
+    }
+
+    @Test
     void rejectsRouteWithoutHost(@TempDir Path dir) throws IOException {
         Files.writeString(dir.resolve("web.yaml"),
                 "name: web\nimage: nginx:1.27-alpine\nroutes:\n  - path: /v1\n");

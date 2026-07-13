@@ -57,9 +57,14 @@ public class DockerEdgeProxy {
         this.ingress = properties.ingress();
     }
 
-    /** Traefik-Entrypoints je Router: bei aktivem Redirect nur {@code websecure}, sonst beide. */
-    public String routerEntrypoints() {
-        return ingress.httpsRedirect() ? "websecure" : "web,websecure";
+    /** Effektiver globaler TLS-Default pro Route/Selbst-Route (ADR-0028; abgeleitet aus ACME). */
+    public boolean defaultTlsEnabled() {
+        return ingress.tls().effectiveDefault();
+    }
+
+    /** Traefik-Entrypoint einer Route je nach TLS: {@code websecure} (HTTPS) oder {@code web} (HTTP). */
+    public String entrypointForTls(boolean tls) {
+        return tls ? "websecure" : "web";
     }
 
     /** Cert-Resolver-Name für {@code tls.certresolver}, oder {@code null} bei self-signed. */
@@ -111,16 +116,20 @@ public class DockerEdgeProxy {
         if (!self.enabled()) {
             return;
         }
+        boolean tlsOn = self.tlsEnabled(defaultTlsEnabled());
         Map<String, Object> router = new LinkedHashMap<>();
         router.put("rule", "Host(`" + self.host() + "`)");
-        router.put("entryPoints", List.of(routerEntrypoints().split(",")));
+        router.put("entryPoints", List.of(entrypointForTls(tlsOn)));
         router.put("service", "d4y");
-        Map<String, Object> tls = new LinkedHashMap<>();
-        String resolver = certResolver();
-        if (resolver != null) {
-            tls.put("certResolver", resolver);
+        if (tlsOn) {
+            Map<String, Object> tls = new LinkedHashMap<>();
+            String resolver = certResolver();
+            if (resolver != null) {
+                tls.put("certResolver", resolver);
+            }
+            router.put("tls", tls); // leeres tls ⇒ HTTPS mit Default-Zertifikat (self-signed)
         }
-        router.put("tls", tls); // leeres tls ⇒ HTTPS mit Default-Zertifikat (self-signed)
+        // ADR-0028: ohne TLS bleibt die Selbst-Route reines HTTP (web) — kein tls-Key.
         Map<String, Object> service = Map.of("loadBalancer",
                 Map.of("servers", List.of(Map.of("url", self.target()))));
         Map<String, Object> doc = Map.of("http", Map.of(
@@ -249,10 +258,7 @@ public class DockerEdgeProxy {
             args.add("--providers.file.directory=/dynamic");
             args.add("--providers.file.watch=true");
         }
-        if (ingress.httpsRedirect()) {
-            args.add("--entrypoints.web.http.redirections.entrypoint.to=websecure");
-            args.add("--entrypoints.web.http.redirections.entrypoint.scheme=https");
-        }
+        // ADR-0028: kein globaler HTTP→HTTPS-Redirect mehr — TLS wird pro Route/Selbst-Route gewählt.
         D4yProperties.Acme acme = ingress.tls().acme();
         if (acme.enabled()) {
             String r = "--certificatesresolvers." + CERT_RESOLVER + ".acme.";

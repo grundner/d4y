@@ -79,10 +79,13 @@ dass die interne Namensauflösung besteht, die Reverse-Proxy-Konfiguration den d
   D4Y stellt einen verwalteten **Traefik**-Edge-Container (Docker-Provider) sicher, hängt alle
   verwalteten Container an ein gemeinsames `d4y`-Netz (Alias = App-Name) und rendert je Route
   Traefik-Router/Service-Labels auf den App-Container. Routes sind Teil des Reconcile (Änderung ⇒ Replace).
-- **HTTPS/TLS** ist umgesetzt ([ADR-0017](../decisions/0017-tls-https-ingress.md)): Entrypoint
-  `websecure :443` + optionaler HTTP→HTTPS-Redirect. **Default self-signed** (Traefik-Zertifikat),
-  **ACME opt-in** (`d4y.ingress.tls.acme.*`) mit **HTTP-01- oder DNS-01-Challenge** und persistiertem
-  Cert-Store.
+- **HTTP/HTTPS pro Route** ([ADR-0017](../decisions/0017-tls-https-ingress.md),
+  [ADR-0028](../decisions/0028-per-route-tls-and-http-mode.md)): Traefik definiert beide Entrypoints
+  `web :80` und `websecure :443`. TLS ist **pro Route** wählbar (`tls: true|false`); ohne Angabe gilt
+  der globale Default (`d4y.ingress.tls.default-enabled`, sonst aus ACME abgeleitet). **Ohne ACME-Mail
+  ⇒ HTTP-only** (VM/Intranet ohne öffentliche IP). Bei TLS: **ACME opt-in** (`d4y.ingress.tls.acme.*`,
+  HTTP-01/DNS-01, persistierter Cert-Store), sonst self-signed. **Kein** globaler HTTP→HTTPS-Redirect
+  mehr. d4ys eigene Route folgt demselben Schalter (`d4y.ingress.self.tls`).
 - **Interne Service-Discovery** ist umgesetzt ([ADR-0018](../decisions/0018-service-discovery-and-dns-mode.md)):
   jeder App-Container erhält im `d4y`-Netz die Aliase `<app>` und `<app>.<internal-domain>`
   (Default-Domain `d4y.internal`, `d4y.ingress.internal-domain`); der stabile Name wird als
