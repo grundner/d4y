@@ -20,7 +20,9 @@ Website + Installer → GitHub Pages).
    ([ADR-0022](0022-release-versioning-image-pipeline.md)) wird **public** — der Pull ist **anonym**,
    ohne Credential.
 2. **Installer auf GitHub Pages.** `curl -fsSL https://grundner.github.io/d4y/install.sh | sh`. Der
-   Installer und die Projekt-Website werden per GitHub Pages aus dem d4y-Repo ausgeliefert.
+   Installer und die Projekt-Website werden per GitHub Pages aus dem d4y-Repo ausgeliefert. Fehlt
+   Docker, installiert der Installer es bei Bedarf automatisch (Linux, offizielles
+   `get.docker.com`-Skript; root/sudo erforderlich).
 3. **Self-generierte Credentials.** Der Installer erzeugt lokal ein zufälliges **Trigger-Token**
    ([ADR-0023](0023-push-triggered-reconcile-and-trigger-auth.md)) und einen **Encryption-Key**
    ([ADR-0024](0024-delivered-image-secrets-encrypted-store.md)) — host/d4y-Credentials ohne
