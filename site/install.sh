@@ -1,29 +1,36 @@
 #!/bin/sh
-# d4y — 1-Zeiler-Installer (ADR-0026). Voll-Push, alle Artefakte auf GitHub.
+# d4y — 1-Zeiler-Installer (ADR-0027). d4y läuft direkt auf dem Host (kein Container), als
+# selbst-enthaltendes Bundle (App + eingebettetes JRE) unter systemd. Kein System-Java nötig.
 #
 #   curl -fsSL https://grundner.github.io/d4y/install.sh | sh
 #
 # Konfiguration über Umgebungsvariablen:
 #   D4Y_HOST        (Pflicht)   öffentlicher Hostname von d4y (DNS A-Record → dieser Host)
 #   D4Y_ACME_EMAIL  (Pflicht)   E-Mail für Let's Encrypt (ACME)
-#   D4Y_IMAGE       (optional)  Default: ghcr.io/grundner/d4y:latest
+#   D4Y_BUNDLE_URL  (optional)  Default: GitHub-Release-Asset (linux/x86_64)
 #
-# Docker wird bei Bedarf automatisch installiert (Linux, get.docker.com; benötigt root/sudo).
+# Docker wird bei Bedarf automatisch installiert (Linux, get.docker.com; benötigt root/sudo) — d4y
+# orchestriert Traefik und Apps weiter über den Docker-Socket.
 # Sicherheit: Prüfe das Skript vor der Ausführung (curl ... -o install.sh; less install.sh).
 set -eu
 
-IMAGE="${D4Y_IMAGE:-ghcr.io/grundner/d4y:latest}"
+BUNDLE_URL="${D4Y_BUNDLE_URL:-https://github.com/grundner/d4y/releases/latest/download/d4y-linux-x86_64.tar.gz}"
+INSTALL_DIR="/opt/d4y"
+DATA_DIR="/var/lib/d4y"
+ENV_FILE="/etc/d4y/d4y.env"
+UNIT_FILE="/etc/systemd/system/d4y.service"
 NETWORK="d4y"
-NAME="d4y"
-VOLUME="d4y_data"
 
 die() { echo "FEHLER: $*" >&2; exit 1; }
 
 [ -n "${D4Y_HOST:-}" ] || die "D4Y_HOST nicht gesetzt (öffentlicher Hostname, z. B. d4y.example.com)."
 [ -n "${D4Y_ACME_EMAIL:-}" ] || die "D4Y_ACME_EMAIL nicht gesetzt (E-Mail für Let's Encrypt)."
 command -v curl >/dev/null 2>&1 || die "curl nicht gefunden."
+[ "$(uname -s)" = "Linux" ] || die "d4y läuft als Host-Bundle nur unter Linux."
+[ "$(uname -m)" = "x86_64" ] || die "Nur linux/x86_64-Bundle verfügbar (erkannt: $(uname -m))."
+command -v systemctl >/dev/null 2>&1 || die "systemd (systemctl) erforderlich."
 
-# Privileg für Docker-Installation und Container-Befehle bestimmen.
+# Privileg für System-Installation und Docker bestimmen.
 SUDO=""
 if [ "$(id -u)" -ne 0 ]; then
   command -v sudo >/dev/null 2>&1 || die "Root-Rechte erforderlich. Als root ausführen oder sudo bereitstellen."
@@ -32,17 +39,10 @@ fi
 
 # Docker bei Bedarf installieren (Linux, offizielles Convenience-Skript get.docker.com).
 if ! command -v docker >/dev/null 2>&1; then
-  [ "$(uname -s)" = "Linux" ] || die "Automatische Docker-Installation nur unter Linux. Bitte Docker manuell installieren."
   echo "› Docker nicht gefunden — installiere Docker (get.docker.com) …"
   curl -fsSL https://get.docker.com | $SUDO sh
-  if command -v systemctl >/dev/null 2>&1; then
-    $SUDO systemctl enable --now docker >/dev/null 2>&1 || true
-  fi
+  $SUDO systemctl enable --now docker >/dev/null 2>&1 || true
   command -v docker >/dev/null 2>&1 || die "Docker-Installation fehlgeschlagen."
-fi
-
-if $SUDO docker ps -a --format '{{.Names}}' | grep -qx "$NAME"; then
-  die "Container '$NAME' existiert bereits. Zum Neuaufsetzen: $SUDO docker rm -f $NAME"
 fi
 
 gen_secret() {
@@ -53,41 +53,77 @@ gen_secret() {
   fi
 }
 
-TOKEN="$(gen_secret)"
-KEY="$(gen_secret)"
+# Vorhandene Credentials übernehmen (Re-Install soll Token/Key nicht rotieren — sonst wäre der
+# verschlüsselte Secret-Store nicht mehr lesbar).
+TOKEN=""; KEY=""
+if $SUDO test -f "$ENV_FILE"; then
+  EXISTING="$($SUDO cat "$ENV_FILE")"
+  TOKEN="$(printf '%s\n' "$EXISTING" | sed -n 's/^D4Y_TRIGGER_TOKEN=//p')"
+  KEY="$(printf '%s\n' "$EXISTING" | sed -n 's/^D4Y_SECRETS_ENCRYPTION_KEY=//p')"
+fi
+[ -n "$TOKEN" ] || TOKEN="$(gen_secret)"
+[ -n "$KEY" ] || KEY="$(gen_secret)"
 
-# Netz + Volume vorab anlegen (idempotent) — d4y muss beim Start am d4y-Netz hängen,
-# damit der von d4y gemanagte Traefik seinen Endpoint routet.
+# Persistenzverzeichnisse anlegen.
+$SUDO mkdir -p "$DATA_DIR/desired" "$DATA_DIR/traefik-dynamic" /etc/d4y
+
+# Bundle laden und nach /opt/d4y entpacken (bestehenden Service vorher stoppen).
+echo "› Lade d4y-Bundle …"
+TMP_TGZ="$(mktemp)"
+curl -fsSL "$BUNDLE_URL" -o "$TMP_TGZ" || die "Bundle-Download fehlgeschlagen: $BUNDLE_URL"
+$SUDO systemctl stop d4y >/dev/null 2>&1 || true
+$SUDO rm -rf "$INSTALL_DIR"
+$SUDO tar -xzf "$TMP_TGZ" -C /opt          # Tarball enthält top-level 'd4y/' → /opt/d4y
+rm -f "$TMP_TGZ"
+[ -x "$INSTALL_DIR/bin/d4y" ] || die "Bundle unvollständig: $INSTALL_DIR/bin/d4y fehlt."
+
+# Docker-Netz für Traefik/Apps (idempotent; d4y stellt es sonst beim Start selbst sicher).
 $SUDO docker network create "$NETWORK" >/dev/null 2>&1 || true
-$SUDO docker volume create "$VOLUME" >/dev/null 2>&1 || true
 
-echo "› Ziehe $IMAGE …"
-$SUDO docker pull "$IMAGE" >/dev/null
+# Environment-Datei schreiben (0600).
+printf '%s\n' \
+  "D4Y_HOST=$D4Y_HOST" \
+  "D4Y_INGRESS_TLS_ACME_EMAIL=$D4Y_ACME_EMAIL" \
+  "D4Y_TRIGGER_TOKEN=$TOKEN" \
+  "D4Y_SECRETS_ENCRYPTION_KEY=$KEY" \
+  "D4Y_DESIRED_STATE_PATH=$DATA_DIR/desired" \
+  "D4Y_SECRETS_FILE=$DATA_DIR/.d4y-secrets" \
+  "D4Y_INGRESS_SELF_DYNAMIC_DIR=$DATA_DIR/traefik-dynamic" \
+  | $SUDO tee "$ENV_FILE" >/dev/null
+$SUDO chmod 600 "$ENV_FILE"
 
-echo "› Starte d4y …"
-# --user 0:0: d4y verwaltet die Docker-Engine über den Socket (bereits root-äquivalent) und
-# braucht Schreibzugriff auf Socket und Persistenz-Volume.
-$SUDO docker run -d --name "$NAME" --restart unless-stopped \
-  --user 0:0 \
-  --network "$NETWORK" \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v "$VOLUME:/data" \
-  -e D4Y_TRIGGER_TOKEN="$TOKEN" \
-  -e D4Y_SECRETS_ENCRYPTION_KEY="$KEY" \
-  -e D4Y_INGRESS_TLS_ACME_EMAIL="$D4Y_ACME_EMAIL" \
-  -e D4Y_DESIRED_STATE_PATH=/data/desired \
-  -e D4Y_SECRETS_FILE=/data/.d4y-secrets \
-  --label traefik.enable=true \
-  --label "traefik.http.routers.d4y.rule=Host(\`$D4Y_HOST\`)" \
-  --label traefik.http.routers.d4y.entrypoints=websecure \
-  --label traefik.http.routers.d4y.tls=true \
-  --label traefik.http.routers.d4y.tls.certresolver=le \
-  --label traefik.http.services.d4y.loadbalancer.server.port=8080 \
-  "$IMAGE" >/dev/null
+# systemd-Unit installieren und starten.
+$SUDO tee "$UNIT_FILE" >/dev/null <<'EOF'
+[Unit]
+Description=d4y — Git-native Runtime Platform
+Documentation=https://github.com/grundner/d4y
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/d4y/d4y.env
+WorkingDirectory=/var/lib/d4y
+ExecStart=/opt/d4y/bin/d4y
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "› Starte d4y (systemd) …"
+$SUDO systemctl daemon-reload
+$SUDO systemctl enable --now d4y
 
 cat <<EOF
 
-✓ d4y läuft.
+✓ d4y läuft als systemd-Service.
+
+  Status:  systemctl status d4y
+  Logs:    journalctl -u d4y -f
+  Neustart: systemctl restart d4y
 
 Trage diese zwei Werte als GitHub-Actions-Secrets in deinem Config-Repo ein:
 

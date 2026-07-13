@@ -15,6 +15,9 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -85,14 +88,58 @@ public class DockerEdgeProxy {
         ensure();
     }
 
-    /** Idempotent: Netzwerk und Edge-Proxy sicherstellen. Fehler werden geloggt, nicht geworfen. */
+    /** Idempotent: Selbst-Route, Netzwerk und Edge-Proxy sicherstellen. Fehler werden geloggt. */
     public synchronized void ensure() {
         try {
+            writeSelfRoute();
             ensureNetwork();
             ensureEdgeProxy();
         } catch (RuntimeException e) {
             log.warn("Edge-Proxy/Netz konnte nicht sichergestellt werden: {}", e.getMessage());
             log.debug("Details", e);
+        }
+    }
+
+    /**
+     * ADR-0027: Schreibt d4ys eigene Traefik-Route als dynamische File-Provider-Config. Im Host-Betrieb
+     * ist d4y kein Container mit Labels, daher wird die eigene Route über eine Datei deklariert
+     * (Ziel = Host-Gateway). Idempotent; ohne gesetzten Host ({@code d4y.ingress.self.host}) ein No-op.
+     * Schreibt nur bei geänderter Config, um unnötige Traefik-Reloads zu vermeiden.
+     */
+    void writeSelfRoute() {
+        D4yProperties.Self self = ingress.self();
+        if (!self.enabled()) {
+            return;
+        }
+        Map<String, Object> router = new LinkedHashMap<>();
+        router.put("rule", "Host(`" + self.host() + "`)");
+        router.put("entryPoints", List.of(routerEntrypoints().split(",")));
+        router.put("service", "d4y");
+        Map<String, Object> tls = new LinkedHashMap<>();
+        String resolver = certResolver();
+        if (resolver != null) {
+            tls.put("certResolver", resolver);
+        }
+        router.put("tls", tls); // leeres tls ⇒ HTTPS mit Default-Zertifikat (self-signed)
+        Map<String, Object> service = Map.of("loadBalancer",
+                Map.of("servers", List.of(Map.of("url", self.target()))));
+        Map<String, Object> doc = Map.of("http", Map.of(
+                "routers", Map.of("d4y", router),
+                "services", Map.of("d4y", service)));
+        try {
+            String content = json.writerWithDefaultPrettyPrinter().writeValueAsString(doc);
+            Path dir = Path.of(self.dynamicDir());
+            Files.createDirectories(dir);
+            Path file = dir.resolve("d4y.json");
+            if (Files.exists(file) && content.equals(Files.readString(file))) {
+                return; // unverändert — kein Reload triggern
+            }
+            Path tmp = dir.resolve("d4y.json.tmp");
+            Files.writeString(tmp, content);
+            Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            log.info("Selbst-Route für Host '{}' → {} geschrieben", self.host(), self.target());
+        } catch (IOException e) {
+            log.warn("Selbst-Route konnte nicht geschrieben werden ({}): {}", self.dynamicDir(), e.getMessage());
         }
     }
 
@@ -168,7 +215,14 @@ public class DockerEdgeProxy {
         }
         Map<String, Object> hostConfig = new LinkedHashMap<>();
         hostConfig.put("NetworkMode", NETWORK);
-        hostConfig.put("Binds", List.of(socketPath + ":/var/run/docker.sock:ro"));
+        List<String> binds = new ArrayList<>();
+        binds.add(socketPath + ":/var/run/docker.sock:ro");
+        if (ingress.self().enabled()) {
+            // ADR-0027: dynamische Config (Selbst-Route) + Host-Gateway-Auflösung für den Host-d4y.
+            binds.add(ingress.self().dynamicDir() + ":/dynamic:ro");
+            hostConfig.put("ExtraHosts", List.of("host.docker.internal:host-gateway"));
+        }
+        hostConfig.put("Binds", binds);
         if (acme.enabled()) {
             hostConfig.put("Mounts", List.of(
                     Map.of("Type", "volume", "Source", ACME_VOLUME, "Target", "/acme")));
@@ -190,6 +244,11 @@ public class DockerEdgeProxy {
                 "--providers.docker.network=" + NETWORK,
                 "--entrypoints.web.address=:80",
                 "--entrypoints.websecure.address=:443"));
+        if (ingress.self().enabled()) {
+            // ADR-0027: File-Provider für d4ys eigene, container-lose Route (Apps bleiben Docker-Provider).
+            args.add("--providers.file.directory=/dynamic");
+            args.add("--providers.file.watch=true");
+        }
         if (ingress.httpsRedirect()) {
             args.add("--entrypoints.web.http.redirections.entrypoint.to=websecure");
             args.add("--entrypoints.web.http.redirections.entrypoint.scheme=https");

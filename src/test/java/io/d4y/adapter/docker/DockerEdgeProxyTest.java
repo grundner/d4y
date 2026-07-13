@@ -3,7 +3,10 @@ package io.d4y.adapter.docker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.d4y.config.D4yProperties;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,7 +32,15 @@ class DockerEdgeProxyTest {
     }
 
     private static D4yProperties.Ingress ingress(boolean redirect, D4yProperties.Acme acme) {
-        return new D4yProperties.Ingress(redirect, "d4y.internal", "extern", new D4yProperties.Tls(acme));
+        return new D4yProperties.Ingress(redirect, "d4y.internal", "extern",
+                new D4yProperties.Self("", "http://host.docker.internal:8080", "/var/lib/d4y/traefik-dynamic"),
+                new D4yProperties.Tls(acme));
+    }
+
+    private static D4yProperties.Ingress ingressWithSelf(String host, String dynamicDir, D4yProperties.Acme acme) {
+        return new D4yProperties.Ingress(true, "d4y.internal", "extern",
+                new D4yProperties.Self(host, "http://host.docker.internal:8080", dynamicDir),
+                new D4yProperties.Tls(acme));
     }
 
     private static D4yProperties.Acme acme(String email, String challenge, String dnsProvider) {
@@ -72,6 +83,47 @@ class DockerEdgeProxyTest {
         DockerEdgeProxy p = proxy(ingress(true, acme("", "http", "")));
 
         assertThat(p.networkAliases("nginx")).containsExactly("nginx", "nginx.d4y.internal");
+    }
+
+    @Test
+    void selfDisabledHasNoFileProvider() {
+        DockerEdgeProxy p = proxy(ingress(true, acme("", "http", "")));
+
+        assertThat(p.traefikArgs()).noneMatch(a -> a.contains("providers.file"));
+    }
+
+    @Test
+    void selfEnabledAddsFileProvider() {
+        DockerEdgeProxy p = proxy(ingressWithSelf("d4y.example.com", "/var/lib/d4y/traefik-dynamic",
+                acme("ops@example.com", "http", "")));
+
+        assertThat(p.traefikArgs())
+                .contains("--providers.file.directory=/dynamic", "--providers.file.watch=true");
+    }
+
+    @Test
+    void writeSelfRouteWritesDynamicConfig(@TempDir Path dir) throws Exception {
+        DockerEdgeProxy p = proxy(ingressWithSelf("d4y.example.com", dir.toString(),
+                acme("ops@example.com", "http", "")));
+
+        p.writeSelfRoute();
+
+        Path file = dir.resolve("d4y.json");
+        assertThat(file).exists();
+        String content = Files.readString(file);
+        assertThat(content)
+                .contains("Host(`d4y.example.com`)")
+                .contains("http://host.docker.internal:8080")
+                .contains("\"certResolver\" : \"le\"");
+    }
+
+    @Test
+    void writeSelfRouteNoopWhenHostBlank(@TempDir Path dir) {
+        DockerEdgeProxy p = proxy(ingressWithSelf("", dir.toString(), acme("", "http", "")));
+
+        p.writeSelfRoute();
+
+        assertThat(dir.resolve("d4y.json")).doesNotExist();
     }
 
     @Test

@@ -4,6 +4,10 @@ Status: Accepted
 Datum: 2026-07-09
 Betrifft: [route](../domain/route.md), [dns-provider](../domain/dns-provider.md), [architecture/networking-and-dns](../architecture/networking-and-dns.md), [ADR-0016](0016-reverse-proxy-traefik-docker-labels.md), [ADR-0010](0010-dns-ingress-service-discovery.md)
 
+> **Ergänzt durch [ADR-0027](0027-d4y-host-bundle-systemd.md):** ACME/`le` gilt unverändert auch für
+> d4ys eigene Route; diese wird im Host-Betrieb per Traefik-File-Provider deklariert (statt über
+> Container-Labels).
+
 ## Kontext
 
 Der Ingress läuft aktuell nur über HTTP `:80` ([ADR-0016](0016-reverse-proxy-traefik-docker-labels.md)).

@@ -1,8 +1,13 @@
 # ADR-0026: 1-Zeiler-Bootstrap und Verteilung über GitHub
 
-Status: Proposed
+Status: Superseded by [ADR-0027](0027-d4y-host-bundle-systemd.md)
 Datum: 2026-07-13
 Betrifft: [ADR-0008](0008-bootstrap-single-command-install.md), [ADR-0022](0022-release-versioning-image-pipeline.md), [ADR-0025](0025-full-push-desired-state-delivery.md), [ADR-0023](0023-push-triggered-reconcile-and-trigger-auth.md), [ADR-0017](0017-tls-https-ingress.md), [ADR-0016](0016-reverse-proxy-traefik-docker-labels.md)
+
+> **Abgelöst durch [ADR-0027](0027-d4y-host-bundle-systemd.md):** Der 1-Zeiler und die GitHub-Pages-
+> Auslieferung bleiben, aber d4y läuft nicht mehr als Container (`docker run`) — der Installer lädt ein
+> jlink-Host-Bundle und richtet einen systemd-Service ein. Das öffentliche GHCR-Image entfällt; d4ys
+> eigene Traefik-Route entsteht per File-Provider im Code statt über Container-Labels.
 
 ## Kontext
 
@@ -49,6 +54,11 @@ Website + Installer → GitHub Pages).
   preis (aber keine Secrets).
 - **Negativ:** Das Buildpack-Image läuft non-root — Volume-Berechtigungen für die Persistenzpfade sind
   im Installer zu berücksichtigen.
+- **Betrieb (Einmal-Schritt):** Die _public_-Sichtbarkeit des GHCR-Pakets ist eine einmalige manuelle
+  Aktivierung (GitHub → Package settings → Change visibility → Public) — analog zu „Settings → Pages →
+  Source" bei der Website. Der CI-`GITHUB_TOKEN` kann die Paket-Sichtbarkeit nicht setzen. Zusätzlich
+  entsteht `:latest` erst mit dem ersten `vX.Y.Z`-Release-Tag. Details in
+  [Release & Versionierung → Operative Einmal-Schritte](../architecture/release-and-versioning.md#operative-einmal-schritte).
 
 Diese ADR **konkretisiert** [ADR-0008](0008-bootstrap-single-command-install.md): der Bootstrap fragt
 **Host + ACME-Mail** statt Config-Repo-Credentials.

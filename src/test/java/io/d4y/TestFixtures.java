@@ -32,6 +32,7 @@ public final class TestFixtures {
                         new D4yProperties.HoldConfig(900, 3600),
                         new D4yProperties.LogsConfig(200)),
                 new D4yProperties.Ingress(true, "d4y.internal", "extern",
+                        new D4yProperties.Self("", "http://host.docker.internal:8080", "/var/lib/d4y/traefik-dynamic"),
                         new D4yProperties.Tls(
                                 new D4yProperties.Acme("", "http", "", "", Map.of()))),
                 new D4yProperties.ConfigRepo("", "main", "", "./.d4y-config", 30000, "", ""),

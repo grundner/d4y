@@ -14,7 +14,7 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | [0003](0003-java21-spring-boot-backend.md) | Backend auf Basis von Java 21 und Spring Boot | Accepted |
 | [0004](0004-nextjs-react-readonly-frontend.md) | Frontend Next.js/React — Sollzustand read-only, operative Aktionen erlaubt | Proposed |
 | [0005](0005-container-backend-abstraction-docker-first.md) | Container-Backend-Abstraktion, Docker zuerst | Accepted |
-| [0006](0006-single-container-image-backend-frontend.md) | Backend + Frontend als einzelnes Image | Accepted |
+| [0006](0006-single-container-image-backend-frontend.md) | Backend + Frontend als einzelnes Image | Superseded by 0027 |
 | [0007](0007-continuous-reconciliation-self-healing.md) | Kontinuierliche Reconciliation und Self-Healing | Accepted |
 | [0008](0008-bootstrap-single-command-install.md) | Inbetriebnahme über einen Bootstrap-Befehl | Proposed |
 | [0009](0009-persistence-optional-backup-restore.md) | Persistenz über optionales Backup/Restore | Proposed |
@@ -30,11 +30,12 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | [0019](0019-git-config-repository-source.md) | Sollzustand aus Git-Config-Repository (JGit, HTTPS) | Accepted |
 | [0020](0020-backup-restore-s3-rclone.md) | Backup/Restore von Volumes in einen S3-Backup-Store (rclone) | Accepted |
 | [0021](0021-published-api-contract-openapi.md) | Publizierter, generierter API-Vertrag (OpenAPI) | Proposed |
-| [0022](0022-release-versioning-image-pipeline.md) | Release-Versionierung und Image-Pipeline (SemVer/Git-Tag, Buildpacks, GHCR) | Proposed |
+| [0022](0022-release-versioning-image-pipeline.md) | Release-Versionierung und Image-Pipeline (SemVer/Git-Tag, Buildpacks, GHCR) | Superseded by 0027 |
 | [0023](0023-push-triggered-reconcile-and-trigger-auth.md) | Push-getriggertes Reconcile und authentifizierter Trigger-Endpoint | Proposed |
 | [0024](0024-delivered-image-secrets-encrypted-store.md) | Gelieferte Image/Container-Secrets und verschlüsselter lokaler Secret-Store | Proposed |
 | [0025](0025-full-push-desired-state-delivery.md) | Voll-Push-Auslieferung des Sollzustands | Proposed |
-| [0026](0026-one-liner-bootstrap-github.md) | 1-Zeiler-Bootstrap und Verteilung über GitHub | Proposed |
+| [0026](0026-one-liner-bootstrap-github.md) | 1-Zeiler-Bootstrap und Verteilung über GitHub | Superseded by 0027 |
+| [0027](0027-d4y-host-bundle-systemd.md) | d4y als selbst-enthaltendes Host-Bundle (jlink) unter systemd | Proposed |
 
 > **Accepted** ADRs sind bindend. **Proposed** ADRs sind Entwürfe und werden erst nach
 > expliziter Freigabe auf **Accepted** gesetzt (siehe [../standards/adr.md](../standards/adr.md)).

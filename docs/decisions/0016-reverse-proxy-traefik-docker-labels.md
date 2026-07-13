@@ -4,6 +4,11 @@ Status: Accepted
 Datum: 2026-07-09
 Betrifft: [route](../domain/route.md), [service-discovery](../domain/service-discovery.md), [architecture/networking-and-dns](../architecture/networking-and-dns.md), [ADR-0010](0010-dns-ingress-service-discovery.md), [ADR-0005](0005-container-backend-abstraction-docker-first.md)
 
+> **Ergänzt durch [ADR-0027](0027-d4y-host-bundle-systemd.md):** Der Docker-Label-Provider bleibt für
+> alle **verwalteten App-Container** maßgeblich. Da d4y selbst nicht mehr als Container läuft, wird
+> **ausschließlich d4ys eigene Route** über einen Traefik-**File-Provider** deklariert (Ziel
+> `host.docker.internal:8080`).
+
 ## Kontext
 
 [Routes](../domain/route.md) sind deklariert und sichtbar ([ADR-0010](0010-dns-ingress-service-discovery.md),

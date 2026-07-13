@@ -80,10 +80,32 @@ public record D4yProperties(
     public record Ingress(@DefaultValue("true") boolean httpsRedirect,
                           @DefaultValue("d4y.internal") String internalDomain,
                           @DefaultValue("extern") String dnsMode,
+                          @DefaultValue Self self,
                           @DefaultValue Tls tls) {
 
         public boolean managedDns() {
             return "managed".equalsIgnoreCase(dnsMode);
+        }
+    }
+
+    /**
+     * Selbst-Ingress von d4y (ADR-0027). Im Host-Betrieb läuft d4y nicht als Container, daher kann
+     * Traefiks Docker-Provider d4ys eigene Route nicht aus Container-Labels lesen. d4y deklariert sie
+     * stattdessen über den Traefik-<b>File-Provider</b>: es schreibt {@code d4y.json} nach
+     * {@link #dynamicDir()} (in den Traefik-Container als {@code /dynamic} gemountet) mit einem Router
+     * {@code Host(host)} und einem Service, der auf {@link #target()} (Host-Gateway) zeigt.
+     *
+     * @param host   öffentlicher Hostname von d4y (aus {@code D4Y_HOST}); leer ⇒ keine Selbst-Route
+     * @param target Backend-URL, unter der Traefik den Host-d4y erreicht (Docker-Host-Gateway)
+     * @param dynamicDir Host-Verzeichnis der dynamischen Traefik-Config (Bind-Mount nach {@code /dynamic})
+     */
+    public record Self(@DefaultValue("") String host,
+                       @DefaultValue("http://host.docker.internal:8080") String target,
+                       @DefaultValue("/var/lib/d4y/traefik-dynamic") String dynamicDir) {
+
+        /** Selbst-Route aktiv, sobald ein Host gesetzt ist (Host-Betrieb). */
+        public boolean enabled() {
+            return host != null && !host.isBlank();
         }
     }
 

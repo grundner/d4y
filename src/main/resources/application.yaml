@@ -15,6 +15,13 @@ d4y:
     path: ./desired
   reconcile:
     interval-ms: 15000
+  ingress:
+    # ADR-0027: d4y läuft direkt auf dem Host. Die eigene Traefik-Route wird über den File-Provider
+    # deklariert (Ziel = Host-Gateway). host leer ⇒ keine Selbst-Route (lokaler/Dev-Betrieb).
+    self:
+      host: ${D4Y_HOST:}
+      target: ${D4Y_INGRESS_SELF_TARGET:http://host.docker.internal:8080}
+      dynamic-dir: ${D4Y_INGRESS_SELF_DYNAMIC_DIR:/var/lib/d4y/traefik-dynamic}
   operations:
     hold:
       default-seconds: 900
