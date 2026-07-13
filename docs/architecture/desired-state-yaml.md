@@ -16,6 +16,13 @@ wie D4Y sie **verarbeitet**.
 > Format und Verarbeitung sind in beiden Fällen identisch; der Sollzustand ist **read-only für UI
 > und API** ([ADR-0001](../decisions/0001-git-as-single-source-of-truth.md)) — Änderungen erfolgen
 > ausschließlich über die Dateien (im Git-Modus über Commits).
+>
+> **Voll-Push-Modus ([ADR-0025](../decisions/0025-full-push-desired-state-delivery.md)):** Ohne
+> gesetzte `d4y.config-repo.url` kann eine externe Pipeline (GitHub Actions) die YAML-Dateien per
+> authentifiziertem `POST /api/reconcile` **liefern**; d4y schreibt sie ins Desired-Verzeichnis und
+> liest sie wie hier beschrieben. Damit zieht d4y nichts und hält keine GitHub-Credentials. Der
+> `POST /api/reconcile`-Push ist der einzige Schreibweg von außen und ändert den Sollzustand — die
+> übrige API bleibt read-only.
 
 ## Ablage & Erkennung
 

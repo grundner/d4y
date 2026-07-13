@@ -33,6 +33,8 @@ Dieser Ordner enthält alle Architektur- und Domänenentscheidungen als ADRs. Nu
 | [0022](0022-release-versioning-image-pipeline.md) | Release-Versionierung und Image-Pipeline (SemVer/Git-Tag, Buildpacks, GHCR) | Proposed |
 | [0023](0023-push-triggered-reconcile-and-trigger-auth.md) | Push-getriggertes Reconcile und authentifizierter Trigger-Endpoint | Proposed |
 | [0024](0024-delivered-image-secrets-encrypted-store.md) | Gelieferte Image/Container-Secrets und verschlüsselter lokaler Secret-Store | Proposed |
+| [0025](0025-full-push-desired-state-delivery.md) | Voll-Push-Auslieferung des Sollzustands | Proposed |
+| [0026](0026-one-liner-bootstrap-github.md) | 1-Zeiler-Bootstrap und Verteilung über GitHub | Proposed |
 
 > **Accepted** ADRs sind bindend. **Proposed** ADRs sind Entwürfe und werden erst nach
 > expliziter Freigabe auf **Accepted** gesetzt (siehe [../standards/adr.md](../standards/adr.md)).
