@@ -83,38 +83,24 @@ public class ComposeOverrideGenerator {
     }
 
     @SuppressWarnings("unchecked")
-    private void applyRoutes(AppProject project, Map<String, Object> services) throws IOException {
-        JsonNode sidecar = yaml.readTree(Files.readString(project.sidecar()));
-        JsonNode routes = sidecar.get("routes");
-        if (routes == null || !routes.isArray()) {
-            return;
-        }
+    private void applyRoutes(AppProject project, Map<String, Object> services) {
         boolean tlsDefault = edgeProxy.defaultTlsEnabled();
         String certResolver = edgeProxy.certResolver();
         int i = 0;
-        for (JsonNode r : routes) {
-            String service = text(r, "service");
-            String host = text(r, "host");
-            if (service.isBlank() || host.isBlank()) {
-                log.warn("App '{}': Route ohne 'service'/'host' übersprungen", project.name());
-                continue;
-            }
-            Map<String, Object> svc = (Map<String, Object>) services.get(service);
+        for (Sidecar.Route route : Sidecar.routes(project)) {
+            Map<String, Object> svc = (Map<String, Object>) services.get(route.service());
             if (svc == null) {
-                log.warn("App '{}': Route verweist auf unbekannten Service '{}'", project.name(), service);
+                log.warn("App '{}': Route verweist auf unbekannten Service '{}'", project.name(), route.service());
                 continue;
             }
-            String path = text(r, "path");
-            int port = r.hasNonNull("port") ? r.get("port").asInt(80) : 80;
-            boolean tls = r.hasNonNull("tls") ? r.get("tls").asBoolean() : tlsDefault;
-
+            boolean tls = route.tls() != null ? route.tls() : tlsDefault;
             Map<String, Object> labels =
                     (Map<String, Object>) svc.computeIfAbsent("labels", k -> new LinkedHashMap<String, Object>());
-            String rn = "d4y-" + sanitize(project.name() + "-" + service) + "-" + i;
+            String rn = "d4y-" + sanitize(project.name() + "-" + route.service()) + "-" + i;
             String router = "traefik.http.routers." + rn + ".";
-            String rule = "Host(`" + host + "`)";
-            if (!path.isBlank() && !"/".equals(path)) {
-                rule += " && PathPrefix(`" + path + "`)";
+            String rule = "Host(`" + route.host() + "`)";
+            if (!"/".equals(route.path())) {
+                rule += " && PathPrefix(`" + route.path() + "`)";
             }
             labels.put("traefik.enable", "true");
             labels.put(router + "rule", rule);
@@ -126,7 +112,7 @@ public class ComposeOverrideGenerator {
                     labels.put(router + "tls.certresolver", certResolver);
                 }
             }
-            labels.put("traefik.http.services." + rn + ".loadbalancer.server.port", String.valueOf(port));
+            labels.put("traefik.http.services." + rn + ".loadbalancer.server.port", String.valueOf(route.port()));
             i++;
         }
     }
@@ -146,11 +132,6 @@ public class ComposeOverrideGenerator {
             n.fieldNames().forEachRemaining(nets::add);
         }
         return nets;
-    }
-
-    private static String text(JsonNode node, String field) {
-        JsonNode v = node.get(field);
-        return v == null || v.isNull() ? "" : v.asText();
     }
 
     private static String sanitize(String s) {

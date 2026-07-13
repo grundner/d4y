@@ -44,7 +44,7 @@ public class ConfigController {
                 v == null ? null : v.time());
     }
 
-    /** Liste der deklarierten YAML-Dateien (relativ) aus der aktuellen Sollzustands-Quelle. */
+    /** Liste der Dateien (relativ) der Compose-App-Verzeichnisse aus der aktuellen Sollzustands-Quelle. */
     @GetMapping("/config/files")
     public FilesView files() {
         Path dir = git.enabled() ? git.desiredDir() : Path.of(localPath);
@@ -53,7 +53,6 @@ public class ConfigController {
             try (Stream<Path> paths = Files.walk(dir)) {
                 paths.filter(Files::isRegularFile)
                         .filter(p -> !p.toString().contains(java.io.File.separator + ".git" + java.io.File.separator))
-                        .filter(ConfigController::isYaml)
                         .map(p -> dir.relativize(p).toString())
                         .sorted()
                         .forEach(files::add);
@@ -62,11 +61,6 @@ public class ConfigController {
             }
         }
         return new FilesView(files);
-    }
-
-    private static boolean isYaml(Path p) {
-        String n = p.getFileName().toString().toLowerCase();
-        return n.endsWith(".yaml") || n.endsWith(".yml");
     }
 
     /**

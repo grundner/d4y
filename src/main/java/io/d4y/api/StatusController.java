@@ -1,103 +1,89 @@
 package io.d4y.api;
 
+import io.d4y.adapter.compose.Sidecar;
+import io.d4y.adapter.docker.DockerEdgeProxy;
 import io.d4y.api.dto.StatusResponse;
 import io.d4y.api.dto.StatusResponse.AppStatus;
-import io.d4y.api.dto.StatusResponse.ExtraContainer;
+import io.d4y.api.dto.StatusResponse.ExtraProject;
 import io.d4y.api.dto.StatusResponse.HoldInfo;
 import io.d4y.api.dto.StatusResponse.RouteInfo;
-import io.d4y.api.dto.StatusResponse.VolumeInfo;
+import io.d4y.api.dto.StatusResponse.ServiceStatus;
 import io.d4y.app.HoldRegistry;
-import io.d4y.domain.model.Application;
-import io.d4y.domain.model.DesiredState;
+import io.d4y.domain.model.AppProject;
+import io.d4y.domain.model.ComposeProject;
 import io.d4y.domain.model.Hold;
-import io.d4y.domain.model.ObservedContainer;
-import io.d4y.domain.model.Route;
-import io.d4y.domain.model.VolumeMapping;
-import io.d4y.port.ContainerBackend;
-import io.d4y.port.DesiredStateSource;
+import io.d4y.port.AppProjectSource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Liefert den aktuellen Plattformzustand (Soll vs. Ist). Bewusst <b>read-only</b> —
- * Infrastrukturänderungen erfolgen ausschließlich über das Config-Repository (ADR-0001).
+ * Liefert den aktuellen Plattformzustand (Soll = Compose-App-Projekte vs. Ist). Bewusst
+ * <b>read-only</b> — Infrastrukturänderungen erfolgen ausschließlich über das Config-Repository
+ * (ADR-0001).
  */
 @RestController
 @RequestMapping("/api")
 public class StatusController {
 
-    private final DesiredStateSource desiredStateSource;
-    private final ContainerBackend backend;
+    private final AppProjectSource projectSource;
+    private final io.d4y.adapter.compose.ComposeObserver observer;
     private final HoldRegistry holdRegistry;
-    private final String internalDomain;
+    private final DockerEdgeProxy edgeProxy;
+    private final String prefix;
 
-    public StatusController(DesiredStateSource desiredStateSource, ContainerBackend backend,
-                           HoldRegistry holdRegistry, io.d4y.config.D4yProperties properties) {
-        this.desiredStateSource = desiredStateSource;
-        this.backend = backend;
+    public StatusController(AppProjectSource projectSource,
+                            io.d4y.adapter.compose.ComposeObserver observer,
+                            HoldRegistry holdRegistry,
+                            DockerEdgeProxy edgeProxy,
+                            @Value("${d4y.compose.project-prefix:d4y-}") String prefix) {
+        this.projectSource = projectSource;
+        this.observer = observer;
         this.holdRegistry = holdRegistry;
-        this.internalDomain = properties.ingress().internalDomain();
+        this.edgeProxy = edgeProxy;
+        this.prefix = prefix;
     }
 
     @GetMapping("/status")
     public StatusResponse status() {
-        DesiredState desired = desiredStateSource.load();
-        List<ObservedContainer> actual = backend.observe();
-        Map<String, ObservedContainer> byApp = actual.stream()
-                .collect(Collectors.toMap(ObservedContainer::appName, Function.identity(), (a, b) -> a));
+        List<AppProject> desired = projectSource.load();
+        Map<String, ComposeProject> byName = observer.observe(prefix).stream()
+                .collect(Collectors.toMap(ComposeProject::name, p -> p, (a, b) -> a, LinkedHashMap::new));
+        boolean tlsDefault = edgeProxy.defaultTlsEnabled();
 
         List<AppStatus> apps = new ArrayList<>();
-        Set<String> desiredNames = new HashSet<>();
+        Set<String> desiredProjects = new java.util.HashSet<>();
         boolean drift = false;
 
-        for (Application app : desired.applications()) {
-            desiredNames.add(app.name());
-            ObservedContainer o = byApp.get(app.name());
-            String state;
-            if (o == null) {
-                state = "MISSING";
-            } else if (!o.running()) {
-                state = "STOPPED";
-            } else if (!o.image().equals(app.image())) {
-                state = "OUTDATED";
-            } else {
-                state = "IN_SYNC";
-            }
-            if (!"IN_SYNC".equals(state)) {
+        for (AppProject app : desired) {
+            String project = app.projectName(prefix);
+            desiredProjects.add(project);
+            ComposeProject observed = byName.get(project);
+            String state = observed == null ? "MISSING" : observed.state();
+            Hold hold = holdRegistry.get(app.name());
+            if (!"RUNNING".equals(state) && hold == null) {
                 drift = true;
             }
-            Hold hold = holdRegistry.get(app.name());
-            HoldInfo holdInfo = hold == null
-                    ? null
-                    : new HoldInfo(hold.type().name(), hold.remainingSeconds(holdRegistry.now()));
             apps.add(new AppStatus(
                     app.name(),
-                    app.name() + "." + internalDomain,
-                    app.image().reference(),
                     state,
-                    o != null && o.running(),
-                    o != null ? o.id() : null,
-                    holdInfo,
-                    toVolumeInfos(app.volumes()),
-                    toRouteInfos(app.routes()),
-                    app.env().keySet().stream().sorted().toList(),
-                    app.backup()));
+                    hold == null ? null : new HoldInfo(hold.type().name(), hold.remainingSeconds(holdRegistry.now())),
+                    services(observed),
+                    routes(app, tlsDefault)));
         }
 
-        List<ExtraContainer> undeclared = new ArrayList<>();
-        for (ObservedContainer o : actual) {
-            if (!desiredNames.contains(o.appName())) {
-                undeclared.add(new ExtraContainer(
-                        o.appName(), o.image().reference(), o.id(), o.running(), toVolumeInfos(o.volumes())));
+        List<ExtraProject> undeclared = new ArrayList<>();
+        for (ComposeProject p : byName.values()) {
+            if (!desiredProjects.contains(p.name())) {
+                undeclared.add(new ExtraProject(p.name(), services(p)));
                 drift = true;
             }
         }
@@ -105,11 +91,19 @@ public class StatusController {
         return new StatusResponse(drift ? "DRIFT" : "IN_SYNC", apps, undeclared);
     }
 
-    private static List<VolumeInfo> toVolumeInfos(List<VolumeMapping> volumes) {
-        return volumes.stream().map(v -> new VolumeInfo(v.name(), v.path())).toList();
+    private static List<ServiceStatus> services(ComposeProject project) {
+        if (project == null) {
+            return List.of();
+        }
+        return project.containers().stream()
+                .map(c -> new ServiceStatus(c.service(), c.image(), c.state()))
+                .toList();
     }
 
-    private static List<RouteInfo> toRouteInfos(List<Route> routes) {
-        return routes.stream().map(r -> new RouteInfo(r.host(), r.path(), r.port())).toList();
+    private static List<RouteInfo> routes(AppProject app, boolean tlsDefault) {
+        return Sidecar.routes(app).stream()
+                .map(r -> new RouteInfo(r.host(), r.path(), r.port(),
+                        r.tls() != null ? r.tls() : tlsDefault))
+                .toList();
     }
 }
