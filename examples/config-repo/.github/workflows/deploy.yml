@@ -1,0 +1,50 @@
+# =============================================================================
+# deploy.yml — liefert die Compose-App-Verzeichnisse + Secrets an d4y (ADR-0025/0029).
+#
+# d4y zieht NICHTS und haelt KEINE GitHub-Credentials. Diese Pipeline pusht die Dateien
+# aller App-Verzeichnisse als Baum an  POST <D4Y_URL>/api/reconcile.
+#
+# BENOETIGTE Actions-Secrets: D4Y_URL, D4Y_TRIGGER_TOKEN (Ausgabe des Installers) sowie je
+# ${VAR} in den compose.yaml ein gleichnamiges Secret (hier: APP_API_TOKEN).
+# =============================================================================
+name: Deploy to d4y
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "*/30 * * * *"   # Konvergenz-Heartbeat (optional, empfohlen)
+  workflow_dispatch:
+
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sollzustand + Secrets an d4y pushen
+        env:
+          D4Y_URL: ${{ secrets.D4Y_URL }}
+          D4Y_TRIGGER_TOKEN: ${{ secrets.D4Y_TRIGGER_TOKEN }}
+          # Je ${VAR} in den compose.yaml hier ein Actions-Secret durchreichen (und unten im jq ergaenzen):
+          APP_API_TOKEN: ${{ secrets.APP_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # config: alle Dateien der App-Verzeichnisse (ohne README.md und .github) → { "<relpfad>": "<inhalt>" }
+          config=$(jq -n '{}')
+          while IFS= read -r f; do
+            rel="${f#./}"
+            config=$(jq --arg n "$rel" --rawfile c "$f" '. + {($n): $c}' <<<"$config")
+          done < <(find . -type f -not -path './.git/*' -not -path './.github/*' -not -name 'README.md')
+
+          # secrets: nur die referenzierten Namen (weitere nach demselben Muster ergaenzen)
+          secrets=$(jq -n --arg APP_API_TOKEN "${APP_API_TOKEN:-}" '{APP_API_TOKEN: $APP_API_TOKEN}')
+
+          payload=$(jq -n --argjson config "$config" --argjson secrets "$secrets" \
+            '{config: $config, secrets: $secrets}')
+
+          curl -fsS -X POST "$D4Y_URL/api/reconcile" \
+            -H "Authorization: Bearer $D4Y_TRIGGER_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$payload"

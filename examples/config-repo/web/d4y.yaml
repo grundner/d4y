@@ -1,0 +1,9 @@
+# d4y-Sidecar (ADR-0029): d4y-spezifische Angaben; compose.yaml bleibt herstellerneutral.
+routes:
+  - service: web              # PFLICHT: Compose-Service, der exponiert wird
+    host: web.d4y.test        # PFLICHT: externer Hostname (ohne Schema/Slash)
+    # port: 80                # optional: Ziel-Port im Service. Default 80
+    # path: /                 # optional: Pfad-Praefix. Default /
+    # tls: true               # optional: true=HTTPS, false=HTTP. Ohne Angabe globaler Default
+# backup:                     # optional: Compose-Volumes, die nach S3 gesichert werden
+#   volumes: [data]

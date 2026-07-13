@@ -1,0 +1,14 @@
+# App mit persistenten Daten und einem Secret. Das Secret kommt als Prozess-Env von d4y
+# (aufgeloest aus dem verschluesselten Store) und wird hier via ${VAR} interpoliert — nie im Repo.
+services:
+  api:
+    image: registry.example.com/team/api:1.4.2
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: info
+      API_TOKEN: ${APP_API_TOKEN}     # von der Pipeline als Secret geliefert (siehe deploy.yml)
+    volumes:
+      - data:/var/lib/app
+
+volumes:
+  data:

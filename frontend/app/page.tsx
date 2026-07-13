@@ -79,12 +79,12 @@ export default function DashboardPage() {
   }
 
   const attention = apps
-    .filter((a) => a.state !== "IN_SYNC")
+    .filter((a) => a.state !== "RUNNING")
     .map((a) => {
       let reason = "";
-      if (a.state === "OUTDATED") reason = `Ist-Image weicht vom Soll ${a.desiredImage.split(":").pop()} ab`;
-      else if (a.state === "MISSING") reason = "Container nicht vorhanden — Reconcile ausstehend";
-      else if (a.state === "STOPPED") reason = "Nicht laufend";
+      if (a.state === "PARTIAL") reason = "Nicht alle Services laufen";
+      else if (a.state === "MISSING") reason = "Projekt nicht vorhanden — Reconcile ausstehend";
+      else if (a.state === "STOPPED") reason = "Projekt gestoppt";
       else reason = "Weicht vom Sollzustand ab";
       return { name: a.name, state: a.state, reason };
     });
@@ -122,7 +122,7 @@ export default function DashboardPage() {
         <Alert severity={isDrift ? "warning" : "success"} sx={{ mb: 3 }}>
           <AlertTitle sx={{ fontWeight: 600 }}>Gesamtstatus: {isDrift ? "DRIFT" : "IN SYNC"}</AlertTitle>
           {isDrift
-            ? `${count("OUTDATED")} App(s) veraltet · ${count("MISSING")} fehlt · ${count("STOPPED")} gestoppt · ${undeclared.length} nicht deklarierte Container. Selbstheilung ist aktiv.`
+            ? `${count("PARTIAL")} App(s) teilweise · ${count("MISSING")} fehlt · ${count("STOPPED")} gestoppt · ${undeclared.length} nicht deklarierte Projekte. Selbstheilung ist aktiv.`
             : `Alle ${apps.length} Applications entsprechen dem Sollzustand. Selbstheilung ist aktiv.`}
         </Alert>
       ) : null}
@@ -136,8 +136,8 @@ export default function DashboardPage() {
         }}
       >
         <StatCard label="Apps gesamt" value={loading && !data ? <Skeleton width={40} /> : apps.length} color="text.primary" />
-        <StatCard label="In Sync" value={loading && !data ? <Skeleton width={40} /> : count("IN_SYNC")} color="success.main" />
-        <StatCard label="Veraltet" value={loading && !data ? <Skeleton width={40} /> : count("OUTDATED")} color="warning.main" />
+        <StatCard label="Running" value={loading && !data ? <Skeleton width={40} /> : count("RUNNING")} color="success.main" />
+        <StatCard label="Partial" value={loading && !data ? <Skeleton width={40} /> : count("PARTIAL")} color="warning.main" />
         <StatCard label="Fehlt" value={loading && !data ? <Skeleton width={40} /> : count("MISSING")} color="error.main" />
         <StatCard label="Gestoppt" value={loading && !data ? <Skeleton width={40} /> : count("STOPPED")} color="text.secondary" />
         <StatCard label="Undeclared" value={loading && !data ? <Skeleton width={40} /> : undeclared.length} color="warning.main" />
@@ -165,9 +165,9 @@ export default function DashboardPage() {
               <ListItemButton onClick={() => router.push("/applications?tab=undeclared")} sx={{ gap: 1.5 }}>
                 <StatusChip status="DRIFT" />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontWeight: 500 }}>{undeclared.length} nicht deklarierte Container</Typography>
+                  <Typography sx={{ fontWeight: 500 }}>{undeclared.length} nicht deklarierte Projekte</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {undeclared.map((u) => u.image).join(" · ")}
+                    {undeclared.map((u) => u.name).join(" · ")}
                   </Typography>
                 </Box>
                 <ChevronRightIcon color="disabled" />

@@ -5,22 +5,20 @@ import Chip from "@mui/material/Chip";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningIcon from "@mui/icons-material/Warning";
 import ErrorIcon from "@mui/icons-material/Error";
-import SyncIcon from "@mui/icons-material/Sync";
-import ScheduleIcon from "@mui/icons-material/Schedule";
 import StopIcon from "@mui/icons-material/Stop";
 import type { AppState } from "@/lib/types";
 
 type ChipColor = "success" | "warning" | "error" | "info" | "secondary" | "default";
 
 const MAP: Record<AppState, { color: ChipColor; label: string; Icon: React.ElementType }> = {
+  // Plattform-Gesamtzustand.
   IN_SYNC: { color: "success", label: "IN SYNC", Icon: CheckCircleIcon },
   DRIFT: { color: "warning", label: "DRIFT", Icon: WarningIcon },
-  OUTDATED: { color: "warning", label: "VERALTET", Icon: WarningIcon },
-  MISSING: { color: "error", label: "FEHLT", Icon: ErrorIcon },
-  ERROR: { color: "error", label: "FEHLER", Icon: ErrorIcon },
-  RECONCILING: { color: "info", label: "RECONCILING", Icon: SyncIcon },
-  HOLD: { color: "secondary", label: "GEHALTEN", Icon: ScheduleIcon },
+  // Laufzeitzustand eines Compose-Projekts (ADR-0029).
+  RUNNING: { color: "success", label: "RUNNING", Icon: CheckCircleIcon },
+  PARTIAL: { color: "warning", label: "PARTIAL", Icon: WarningIcon },
   STOPPED: { color: "default", label: "GESTOPPT", Icon: StopIcon },
+  MISSING: { color: "error", label: "FEHLT", Icon: ErrorIcon },
 };
 
 export default function StatusChip({ status }: { status: AppState }) {

@@ -41,15 +41,7 @@ import ExecPanel from "@/components/ExecPanel";
 import { useD4y } from "@/lib/store";
 import { useStatus } from "@/lib/api";
 import { formatCountdown, holdEnumLabel } from "@/lib/format";
-import {
-  restartApp,
-  stopApp,
-  setParams,
-  setHold,
-  releaseHold,
-  inspectApp,
-  type ContainerDetails,
-} from "@/lib/actions";
+import { restartApp, stopApp, setParams, setHold, releaseHold } from "@/lib/actions";
 import type { AppState } from "@/lib/types";
 
 const DURATIONS = [
@@ -81,8 +73,7 @@ function AppDetailInner() {
   const { data, error, loading } = useStatus(reloadKey);
   const reload = () => setLocalReload((n) => n + 1);
 
-  const [details, setDetails] = React.useState<ContainerDetails | null>(null);
-  const TABS = ["overview", "logs", "exec", "volumes", "routes", "hold"];
+  const TABS = ["overview", "logs", "exec", "routes", "hold"];
   const urlTab = searchParams.get("tab") ?? "";
   const [tab, setTab] = React.useState(TABS.includes(urlTab) ? urlTab : "overview");
   const changeTab = (v: string) => {
@@ -99,17 +90,6 @@ function AppDetailInner() {
   const [busy, setBusy] = React.useState(false);
 
   const cur = data?.applications.find((a) => a.name === name) ?? null;
-
-  React.useEffect(() => {
-    if (!name) return;
-    let alive = true;
-    inspectApp(name)
-      .then((d) => alive && setDetails(d))
-      .catch(() => alive && setDetails(null));
-    return () => {
-      alive = false;
-    };
-  }, [name, reloadKey]);
 
   if (loading && !data) {
     return <Skeleton variant="rounded" height={200} />;
@@ -137,8 +117,6 @@ function AppDetailInner() {
 
   const hold = cur.hold ?? null;
   const rem = hold ? formatCountdown(hold.remainingSeconds) : "";
-  const actualImage = details?.image ?? cur.desiredImage;
-  const imageMismatch = !!details && details.image !== cur.desiredImage;
 
   async function runDialog() {
     setBusy(true);
@@ -195,15 +173,15 @@ function AppDetailInner() {
       </Stack>
       <Stack direction="row" spacing={3} flexWrap="wrap" useFlexGap sx={{ mb: 2, color: "text.secondary", fontSize: 13 }}>
         <span>
-          Desired Image:{" "}
-          <Box component="span" sx={{ fontFamily: "monospace", color: "text.primary" }}>
-            {cur.desiredImage}
+          Compose-Projekt ·{" "}
+          <Box component="span" sx={{ color: "text.primary" }}>
+            {cur.services.length} Service{cur.services.length === 1 ? "" : "s"}
           </Box>
         </span>
         <span>
-          Service-Discovery:{" "}
-          <Box component="span" sx={{ fontFamily: "monospace", color: "text.primary" }}>
-            {cur.serviceName}
+          Routes:{" "}
+          <Box component="span" sx={{ color: "text.primary" }}>
+            {cur.routes.length}
           </Box>
         </span>
       </Stack>
@@ -256,66 +234,45 @@ function AppDetailInner() {
         <Tab value="overview" label="Übersicht" />
         <Tab value="logs" label="Logs" />
         <Tab value="exec" label="exec / Shell" />
-        <Tab value="volumes" label="Volumes" />
         <Tab value="routes" label="Routes" />
         <Tab value="hold" label="Hold" />
       </Tabs>
 
       {tab === "overview" && (
         <>
-          <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-            <Table>
+          <Typography variant="overline" color="text.secondary">
+            Services (Ist, aus GET /api/status)
+          </Typography>
+          <TableContainer component={Paper} variant="outlined" sx={{ mt: 1, mb: 2 }}>
+            <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ width: 200 }} />
-                  <TableCell>Soll (Git)</TableCell>
-                  <TableCell>Ist (Runtime)</TableCell>
+                  <TableCell>Service</TableCell>
+                  <TableCell>Image</TableCell>
+                  <TableCell>Zustand</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                <TableRow>
-                  <TableCell sx={{ color: "text.secondary" }}>Image</TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{cur.desiredImage}</TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, ...(imageMismatch ? { bgcolor: "rgba(224,169,74,0.16)", color: "#e0a94a" } : {}) }}>
-                    {actualImage}
-                    {imageMismatch ? " · weicht ab" : ""}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ color: "text.secondary" }}>Läuft</TableCell>
-                  <TableCell>Ja</TableCell>
-                  <TableCell>{cur.running ? "Ja" : "Nein"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ color: "text.secondary" }}>Container-ID</TableCell>
-                  <TableCell sx={{ color: "text.disabled" }}>—</TableCell>
-                  <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, color: "text.secondary" }}>
-                    {cur.containerId ? cur.containerId.slice(0, 12) : "—"}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ color: "text.secondary" }}>Erstellt</TableCell>
-                  <TableCell sx={{ color: "text.disabled" }}>—</TableCell>
-                  <TableCell sx={{ color: "text.secondary" }}>{details?.createdAt ?? "—"}</TableCell>
-                </TableRow>
+                {cur.services.map((s) => (
+                  <TableRow key={s.name}>
+                    <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{s.name}</TableCell>
+                    <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, color: "text.secondary" }}>{s.image}</TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={s.state}
+                        sx={
+                          s.state === "running"
+                            ? { bgcolor: "rgba(95,208,168,0.16)", color: "#5fd0a8", fontWeight: 500, fontFamily: "monospace" }
+                            : { bgcolor: "rgba(139,147,161,0.15)", color: "#c7cdd6", fontWeight: 500, fontFamily: "monospace" }
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </TableContainer>
-          {cur.envKeys.length > 0 && (
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Konfiguration (Env, deklariert)
-              </Typography>
-              <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }} useFlexGap>
-                {cur.envKeys.map((k) => (
-                  <Chip key={k} size="small" label={k} sx={{ fontFamily: "monospace", bgcolor: "rgba(139,147,161,0.15)", color: "#c7cdd6" }} />
-                ))}
-              </Stack>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
-                Werte werden aus Datenschutzgründen nicht angezeigt.
-              </Typography>
-            </Box>
-          )}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
             <Card variant="outlined">
               <CardContent>
@@ -347,53 +304,6 @@ function AppDetailInner() {
 
       {tab === "logs" && <LogsPanel name={name} />}
       {tab === "exec" && <ExecPanel name={name} />}
-      {tab === "volumes" && (
-        <>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">Backup:</Typography>
-            {cur.backup ? (
-              <Chip size="small" label="aktiv" sx={{ bgcolor: "rgba(95,208,168,0.16)", color: "#5fd0a8", fontWeight: 500 }} />
-            ) : (
-              <Chip size="small" label="ephemer (kein Backup)" sx={{ bgcolor: "rgba(139,147,161,0.15)", color: "#c7cdd6" }} />
-            )}
-            <Typography variant="caption" color="text.secondary">
-              {cur.backup ? "Daten werden in den Backup-Store gesichert; Restore bei leerem Volume." : "Ohne Backup gehen die Daten bei Redeploy/Serververlust verloren."}
-            </Typography>
-          </Stack>
-          {cur.volumes.length === 0 ? (
-          <EmptyState text="Diese App deklariert keine Volumes. Named Volumes werden im Config-Repository (Git) deklariert." />
-        ) : (
-          <>
-            <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Mount-Pfad (Container)</TableCell>
-                    <TableCell>Typ</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {cur.volumes.map((v) => (
-                    <TableRow key={v.name}>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{v.name}</TableCell>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{v.path}</TableCell>
-                      <TableCell>
-                        <Chip size="small" label="Named" sx={{ bgcolor: "rgba(77,184,255,0.16)", color: "#6ac4ff", fontWeight: 500 }} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <Typography variant="body2" color="text.secondary">
-              Deklarierte Named Volumes (Soll, aus <code>GET /api/status</code>). Deklaration nur über das
-              Config-Repository (Git); der Inhalt ist nicht Teil des Sollzustands.
-            </Typography>
-          </>
-        )}
-        </>
-      )}
       {tab === "routes" && (
         cur.routes.length === 0 ? (
           <EmptyState text="Diese App deklariert keine Routes. Externer Ingress (Hostname → App) wird im Config-Repository (Git) deklariert." />
@@ -406,6 +316,7 @@ function AppDetailInner() {
                     <TableCell>Hostname</TableCell>
                     <TableCell>Pfad</TableCell>
                     <TableCell>Ziel-Port</TableCell>
+                    <TableCell>Schema</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -414,6 +325,17 @@ function AppDetailInner() {
                       <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{r.host}</TableCell>
                       <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{r.path}</TableCell>
                       <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{r.port}</TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={r.tls ? "https" : "http"}
+                          sx={
+                            r.tls
+                              ? { bgcolor: "rgba(95,208,168,0.16)", color: "#5fd0a8", fontWeight: 500, fontFamily: "monospace" }
+                              : { bgcolor: "rgba(139,147,161,0.15)", color: "#c7cdd6", fontWeight: 500, fontFamily: "monospace" }
+                          }
+                        />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

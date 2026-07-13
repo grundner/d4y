@@ -1,0 +1,6 @@
+# Reines, valides Docker Compose — laeuft auch lokal mit `docker compose up`.
+# d4y-Spezifisches (Ingress-Routes) steht separat in d4y.yaml.
+services:
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped

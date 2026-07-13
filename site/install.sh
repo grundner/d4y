@@ -51,6 +51,10 @@ if ! command -v docker >/dev/null 2>&1; then
   command -v docker >/dev/null 2>&1 || die "Docker-Installation fehlgeschlagen."
 fi
 
+# docker compose (Plugin) sicherstellen — d4y führt Apps über 'docker compose' aus (ADR-0029).
+$SUDO docker compose version >/dev/null 2>&1 \
+  || die "docker compose (Compose-Plugin) fehlt. Installiere das docker-compose-plugin (get.docker.com liefert es i. d. R. mit)."
+
 gen_secret() {
   if command -v openssl >/dev/null 2>&1; then
     openssl rand -hex 32

@@ -25,8 +25,6 @@ import {
   Typography,
 } from "@mui/material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import StatusChip from "@/components/StatusChip";
 import { useD4y } from "@/lib/store";
@@ -57,13 +55,20 @@ function ApplicationsInner() {
       ),
     },
     {
-      field: "desiredImage",
-      headerName: "Image",
+      field: "services",
+      headerName: "Services",
       flex: 1.6,
       minWidth: 220,
-      renderCell: (p) => (
-        <Box sx={{ fontFamily: "monospace", fontSize: 12.5, color: "text.secondary" }}>{p.row.desiredImage}</Box>
-      ),
+      sortable: false,
+      valueGetter: (_v, row) => (row.services ?? []).map((s: { name: string }) => s.name).join(" "),
+      renderCell: (p) =>
+        p.row.services && p.row.services.length > 0 ? (
+          <Box sx={{ fontFamily: "monospace", fontSize: 12.5, color: "text.secondary" }}>
+            {p.row.services.map((s: { name: string }) => s.name).join(", ")}
+          </Box>
+        ) : (
+          <Box component="span" sx={{ color: "text.disabled" }}>—</Box>
+        ),
     },
     {
       field: "state",
@@ -73,47 +78,22 @@ function ApplicationsInner() {
       renderCell: (p) => <StatusChip status={p.row.state as AppState} />,
     },
     {
-      field: "running",
-      headerName: "Läuft",
-      width: 100,
-      renderCell: (p) =>
-        p.row.running ? (
-          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: "success.main" }}>
-            <CheckIcon fontSize="small" />
-            <span>Ja</span>
-          </Stack>
-        ) : (
-          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: "text.disabled" }}>
-            <CloseIcon fontSize="small" />
-            <span>Nein</span>
-          </Stack>
-        ),
-    },
-    {
       field: "routes",
       headerName: "Routes",
       flex: 1,
-      minWidth: 160,
+      minWidth: 180,
       sortable: false,
+      valueGetter: (_v, row) => (row.routes ?? []).map((r: { host: string }) => r.host).join(" "),
       renderCell: (p) =>
         p.row.routes && p.row.routes.length > 0 ? (
           <Box sx={{ fontFamily: "monospace", fontSize: 12.5 }}>
-            {p.row.routes.map((r: { host: string }) => r.host).join(", ")}
+            {p.row.routes
+              .map((r: { host: string; tls: boolean }) => `${r.tls ? "https" : "http"}://${r.host}`)
+              .join(", ")}
           </Box>
         ) : (
           <Box component="span" sx={{ color: "text.disabled" }}>—</Box>
         ),
-    },
-    {
-      field: "containerId",
-      headerName: "Container-ID",
-      flex: 1,
-      minWidth: 150,
-      renderCell: (p) => (
-        <Box sx={{ fontFamily: "monospace", fontSize: 12.5, color: "text.secondary" }}>
-          {p.row.containerId ? String(p.row.containerId).slice(0, 12) : "—"}
-        </Box>
-      ),
     },
   ];
 
@@ -194,24 +174,22 @@ function ApplicationsInner() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>App-Name</TableCell>
-                    <TableCell>Image</TableCell>
-                    <TableCell>Container-ID</TableCell>
+                    <TableCell>Projekt</TableCell>
+                    <TableCell>Services</TableCell>
                     <TableCell align="right">Aktion</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {undeclared.map((u) => (
                     <TableRow
-                      key={u.containerId}
+                      key={u.name}
                       hover
-                      onClick={() => router.push(`/applications/undeclared?id=${encodeURIComponent(u.containerId)}`)}
+                      onClick={() => router.push(`/applications/undeclared?name=${encodeURIComponent(u.name)}`)}
                       sx={{ cursor: "pointer" }}
                     >
-                      <TableCell sx={{ color: "text.secondary" }}>{u.appName || "—"}</TableCell>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>{u.image}</TableCell>
-                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5, color: "text.secondary" }}>
-                        {String(u.containerId).slice(0, 12)}
+                      <TableCell sx={{ color: "text.secondary" }}>{u.name || "—"}</TableCell>
+                      <TableCell sx={{ fontFamily: "monospace", fontSize: 12.5 }}>
+                        {u.services.map((s) => `${s.name} (${s.image})`).join(", ")}
                       </TableCell>
                       <TableCell align="right">
                         <Button
@@ -221,7 +199,7 @@ function ApplicationsInner() {
                           startIcon={<DeleteOutlineIcon />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            showSnack(`Nicht deklarierter Container ${u.image} entfernt (operative Aktion).`);
+                            showSnack(`Nicht deklariertes Projekt ${u.name} entfernt (operative Aktion).`);
                           }}
                         >
                           Entfernen
