@@ -65,7 +65,8 @@ public class DockerVolumeBackup implements VolumeBackup {
         if (!enabled()) {
             return;
         }
-        String volName = "d4y_" + appName + "_" + volumeName;
+        // Compose benennt Volumes <projekt>_<volume>; Projekt = d4y-<app> (ADR-0029).
+        String volName = "d4y-" + appName + "_" + volumeName;
         try {
             ensureRcloneImage();
             Map<String, Object> body = helperBody(volName, List.of("sync", src, dst));

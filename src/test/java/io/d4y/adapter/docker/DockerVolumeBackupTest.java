@@ -71,8 +71,9 @@ class DockerVolumeBackupTest {
                         "RCLONE_CONFIG_STORE_ACCESS_KEY_ID=key",
                         "RCLONE_CONFIG_STORE_SECRET_ACCESS_KEY=secret");
 
+        // Compose-Volume-Name: <projekt>_<volume> = d4y-<app>_<vol> (ADR-0029).
         assertThat(body.path("HostConfig").path("Mounts").get(0).path("Source").asText())
-                .isEqualTo("d4y_nginx_html");
+                .isEqualTo("d4y-nginx_html");
         assertThat(body.path("HostConfig").path("NetworkMode").asText()).isEqualTo("d4y");
     }
 
